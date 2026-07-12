@@ -1,0 +1,231 @@
+{
+  "image": {
+    "allowed_formats": ["png", "bmp", "tif", "tiff"],
+    "allowed_sizes": [
+      [512, 512],
+      [1024, 1024],
+      [2048, 2048]
+    ],
+    "default_size": [1024, 1024],
+    "grayscale": true,
+    "pixel_value_range": [0, 255],
+    "resize_on_load": false
+  },
+
+  "preprocessing": {
+    "denoise": true,
+    "normalize": true,
+    "contrast_enhancement": false,
+    "smoothing": false,
+    "filter_size": 3,
+    "preserve_size": true
+  },
+
+  "segmentation": {
+    "method": "threshold",
+
+    "output": {
+      "foreground_value": 1,
+      "background_value": 0,
+      "preserve_size": true
+    },
+
+    "threshold": {
+      "threshold_value": 128,
+      "invert": false
+    },
+
+    "neural": {
+      "selected_model": null,
+      "entities": {},
+      "default_confidence_threshold": 0.5,
+      "device": "cpu"
+    }
+  },
+
+  "postprocessing": {
+    "remove_small_objects": true,
+    "min_object_area": 20,
+
+    "fill_holes": true,
+
+    "morphology": {
+      "enabled": true,
+      "operation": "closing",
+      "kernel_size": 3
+    },
+
+    "preserve_size": true
+  },
+
+  "object_detection": {
+    "connectivity": 8,
+    "min_object_area": 20,
+    "return_bounding_box": true,
+    "return_centroid": true,
+    "return_object_mask": false
+  },
+
+  "object_classification": {
+    "classification_mode": "detect_separation_candidates",
+
+    "candidate_rules": {
+      "max_area": null,
+      "min_roundness": null,
+      "max_eccentricity": null,
+      "min_solidity": null,
+      "min_extent": null
+    },
+
+    "features": {
+      "use_area": true,
+      "use_roundness": true,
+      "use_eccentricity": true,
+      "use_solidity": true,
+      "use_extent": true
+    }
+  },
+
+  "pore_separation": {
+    "apply_only_to_candidates": true,
+
+    "preserve_autonomous_pores": true,
+
+    "keep_unseparated_candidates": true,
+
+    "validate_separation_result": true,
+
+    "preserve_parent_link": true,
+
+    "evaluate_separation_quality": true,
+
+    "quality_metrics": {
+      "covered_area": true,
+      "lost_area": true,
+      "extra_area": true,
+      "coverage_ratio": true,
+      "extra_ratio": false
+    },
+
+    "algorithm_params": {}
+  },
+
+  "pore_merging": {
+    "preserve_object_status": true,
+
+    "preserve_parent_object_id": true,
+
+    "preserve_separation_quality_metrics": true,
+
+    "include_autonomous_pores": true,
+
+    "include_separated_objects": true,
+
+    "include_unseparated_candidates": true,
+
+    "object_statuses": ["autonomous", "separated", "unseparated_candidate"]
+  },
+
+  "feature_extraction": {
+    "calculate_object_features": true,
+
+    "calculate_summary_statistics": true,
+
+    "preserve_object_status": true,
+
+    "preserve_parent_object_id": true,
+
+    "include_separation_quality_metrics": true,
+
+    "use_status_based_feature_source": true,
+
+    "use_scale": false,
+
+    "scale_mm_per_pixel": null,
+
+    "region_object_features": {
+      "area": true,
+      "perimeter": true,
+      "centroid": true,
+      "equivalent_diameter": true,
+      "bounding_box": true,
+      "roundness": true,
+      "relative_area": true
+    },
+
+    "circle_object_features": {
+      "center": true,
+      "radius": true,
+      "diameter": true,
+      "area": true,
+      "circumference": true,
+      "relative_area": true
+    },
+
+    "separation_quality_metrics": {
+      "covered_area": true,
+      "lost_area": true,
+      "extra_area": true,
+      "coverage_ratio": true,
+      "extra_ratio": false
+    },
+
+    "summary_statistics": {
+      "total_count": true,
+      "count_by_status": true,
+      "total_pore_area": true,
+      "mean_area": true,
+      "min_area": true,
+      "max_area": true,
+      "porosity": true,
+      "size_distribution": true
+    }
+  },
+
+  "analysis_pipeline": {
+    "save_intermediate_results": true,
+
+    "save_run_parameters": true,
+
+    "save_segmentation_mask": true,
+
+    "save_postprocessed_mask": true,
+
+    "save_classification_result": true,
+
+    "save_separation_result": true,
+
+    "save_final_objects": true,
+
+    "save_features": true
+  },
+
+  "training": {
+    "dataset_pair_format": "image_mask",
+
+    "validate_image_mask_size": true,
+
+    "allowed_image_formats": [".png", ".bmp", ".tif", ".tiff"],
+
+    "allowed_mask_formats": [".png", ".bmp", ".tif", ".tiff"],
+
+    "training_params": {
+      "epochs": null,
+      "batch_size": null,
+      "learning_rate": null,
+      "architecture": null
+    },
+
+    "model_registry": {
+      "save_model_file": true,
+      "register_model_in_config": true,
+      "models_directory": "entities"
+    },
+
+    "metrics": {
+      "dice": true,
+      "iou": true,
+      "pixel_accuracy": true
+    }
+  }
+}

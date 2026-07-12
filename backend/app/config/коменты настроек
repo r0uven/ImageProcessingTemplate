@@ -1,0 +1,266 @@
+# settings.py
+IMAGE_SETTINGS = {
+ "allowed_formats": [".png", ".bmp", ".tif", ".tiff"],
+ "allowed_sizes": [(512, 512), (1024, 1024), (2048, 2048)],
+ "default_size": (1024, 1024),
+ "grayscale": True,
+ "pixel_value_range": (0, 255),
+ "resize_on_load": False
+}
+PREPROCESSING_SETTINGS = {
+ "denoise": True,
+ "normalize": True,
+ "contrast_enhancement": False,
+ "smoothing": False,
+ "filter_size": 3,
+ "preserve_size": True
+}
+SEGMENTATION_SETTINGS = {
+ # Выбранный метод сегментации:
+ # "threshold" – пороговая сегментация
+ # "neural" – нейросетевая сегментация
+ "method": "threshold",
+ # Общие параметры выходной маски
+ "output": {
+ "foreground_value": 1,
+ "background_value": 0,
+ "preserve_size": True
+ },
+ # Параметры пороговой сегментации
+ "threshold": {
+ "threshold_value": 128,
+ "invert": False
+ },
+ # Параметры нейросетевой сегментации
+ "neural": {
+ "selected_model": None,
+ "entities": {},
+ "default_confidence_threshold": 0.5,
+ "device": "cpu"
+ }
+}
+POSTPROCESSING_SETTINGS = {
+ "remove_small_objects": True,
+ "min_object_area": 20,
+
+ "fill_holes": True,
+ "morphology": {
+ "enabled": True,
+ "operation": "closing",
+ "kernel_size": 3
+ },
+ "preserve_size": True
+}
+OBJECT_DETECTION_SETTINGS = {
+ "connectivity": 8,
+ "min_object_area": 20,
+ "return_bounding_box": True,
+ "return_centroid": True,
+ "return_object_mask": False
+}
+OBJECT_CLASSIFICATION_SETTINGS = {
+ # Логика классификации:
+ # объект считается кандидатом на разделение,
+ # если его признаки указывают на возможное объединение нескольких пор.
+ "classification_mode": "detect_separation_candidates",
+ # Пороговые признаки кандидатности.
+ # Значения None означают, что конкретный критерий
+ # не используется до явного задания параметра.
+ "candidate_rules": {
+ "max_area": None,
+ "min_roundness": None,
+ "max_eccentricity": None,
+ "min_solidity": None,
+ "min_extent": None
+ },
+ # Набор признаков, которые могут использоваться при классификации.
+ "features": {
+ "use_area": True,
+ "use_roundness": True,
+ "use_eccentricity": True,
+ "use_solidity": True,
+ "use_extent": True
+ }
+}
+PORE_SEPARATION_SETTINGS = {
+ # Алгоритм применяется только к объектам,
+ # отнесённым классификатором к кандидатам.
+ "apply_only_to_candidates": True,
+ # Автономные поры не передаются в модуль разделения
+ # и сохраняются без изменений.
+ "preserve_autonomous_pores": True,
+ # Неразделённые кандидаты сохраняются
+ # и передаются дальше с отдельным статусом.
+ "keep_unseparated_candidates": True,
+ # Требовать подтверждения корректности разделения.
+
+ "validate_separation_result": True,
+ # Сохранять связь разделённых объектов
+ # с исходным объектом-кандидатом.
+ "preserve_parent_link": True,
+ # Оценивать качество разделения относительно
+ # исходной маски кандидата.
+ "evaluate_separation_quality": True,
+ "quality_metrics": {
+ "covered_area": True,
+ "lost_area": True,
+ "extra_area": True,
+ "coverage_ratio": True,
+ "extra_ratio": False
+ },
+ # Параметры основного алгоритма разделения.
+ # Конкретный состав параметров определяется реализацией алгоритма.
+ "algorithm_params": {}
+}
+PORE_MERGING_SETTINGS = {
+ # Сохранять статус происхождения каждого объекта
+ # в итоговом наборе.
+ "preserve_object_status": True,
+ # Сохранять связь разделённых объектов
+ # с исходным объектом-кандидатом.
+ "preserve_parent_object_id": True,
+ # Сохранять показатели качества разделения,
+ # если они были рассчитаны.
+ "preserve_separation_quality_metrics": True,
+ # Включать автономные поры в итоговый набор.
+ "include_autonomous_pores": True,
+ # Включать объекты, полученные после успешного разделения.
+ "include_separated_objects": True,
+ # Включать неразделённые кандидаты в итоговый набор
+ # с отдельным статусом.
+ "include_unseparated_candidates": True,
+ # Допустимые статусы объектов итогового набора.
+ "object_statuses": [
+ "autonomous",
+ "separated",
+ "unseparated_candidate"
+ ]
+}
+FEATURE_EXTRACTION_SETTINGS = {
+ # Формировать индивидуальные характеристики объектов.
+ "calculate_object_features": True,
+ # Рассчитывать обобщённую статистику по изображению.
+ "calculate_summary_statistics": True,
+
+ # Сохранять статус происхождения объекта
+ # в таблице характеристик.
+ "preserve_object_status": True,
+ # Сохранять идентификатор родительского объекта
+ # для объектов, полученных после разделения.
+ "preserve_parent_object_id": True,
+ # Включать показатели качества разделения
+ # в итоговый результат при их наличии.
+ "include_separation_quality_metrics": True,
+ # Учитывать различный источник характеристик
+ # для объектов разного происхождения.
+ "use_status_based_feature_source": True,
+ # Использовать масштаб пересчёта пикселей
+ # в метрические единицы, если он задан.
+ "use_scale": False,
+ # Масштаб задаётся отдельно при наличии данных калибровки.
+ "scale_mm_per_pixel": None,
+ # Характеристики для объектов-регионов:
+ # autonomous и unseparated_candidate.
+ "region_object_features": {
+ "area": True,
+ "perimeter": True,
+ "centroid": True,
+ "equivalent_diameter": True,
+ "bounding_box": True,
+ "roundness": True,
+ "relative_area": True
+ },
+ # Характеристики для разделённых объектов,
+ # представленных окружностями.
+ "circle_object_features": {
+ "center": True,
+ "radius": True,
+ "diameter": True,
+ "area": True,
+ "circumference": True,
+ "relative_area": True
+ },
+ # Показатели качества разделения.
+ "separation_quality_metrics": {
+ "covered_area": True,
+ "lost_area": True,
+ "extra_area": True,
+ "coverage_ratio": True,
+ "extra_ratio": False
+ },
+ # Обобщённые статистические показатели.
+ "summary_statistics": {
+ "total_count": True,
+ "count_by_status": True,
+ "total_pore_area": True,
+ "mean_area": True,
+ "min_area": True,
+ "max_area": True,
+
+ "porosity": True,
+ "size_distribution": True
+ }
+}
+ANALYSIS_PIPELINE_SETTINGS = {
+ # Сохранять промежуточные результаты анализа.
+ "save_intermediate_results": True,
+ # Сохранять параметры запуска анализа
+ # для последующего воспроизведения.
+ "save_run_parameters": True,
+ # Сохранять бинарную маску после сегментации.
+ "save_segmentation_mask": True,
+ # Сохранять уточнённую маску после постобработки.
+ "save_postprocessed_mask": True,
+ # Сохранять результат классификации объектов.
+ "save_classification_result": True,
+ # Сохранять результат разделения кандидатов.
+ "save_separation_result": True,
+ # Сохранять итоговый список объектов.
+ "save_final_objects": True,
+ # Сохранять рассчитанные характеристики.
+ "save_features": True
+},
+TRAINING_SETTINGS = {
+ # Формат обучающих данных:
+ # пара "изображение – маска разметки".
+ "dataset_pair_format": "image_mask",
+ # Проверять соответствие размеров изображения и маски.
+ "validate_image_mask_size": True,
+ # Допустимые форматы изображений и масок.
+ "allowed_image_formats": [".png", ".bmp", ".tif", ".tiff"],
+ "allowed_mask_formats": [".png", ".bmp", ".tif", ".tiff"],
+ # Параметры обучения.
+ # Конкретные значения уточняются при реализации модели.
+ "training_params": {
+ "epochs": None,
+ "batch_size": None,
+ "learning_rate": None,
+ "architecture": None
+ },
+ # Параметры сохранения модели.
+ "model_registry": {
+ "save_model_file": True,
+ "register_model_in_config": True,
+ "models_directory": "entities"
+ },
+ # Показатели качества модели.
+ "metrics": {
+ "dice": True,
+ "iou": True,
+ "pixel_accuracy": True
+ }
+}
+##### СЛОВАРЬ РАЗДЕЛОВ####################################
+APP_SETTINGS = {
+ "image": IMAGE_SETTINGS,
+ "preprocessing": PREPROCESSING_SETTINGS,
+ "segmentation": SEGMENTATION_SETTINGS,
+ "postprocessing": POSTPROCESSING_SETTINGS,
+ "object_detection": OBJECT_DETECTION_SETTINGS,
+ "object_classification": OBJECT_CLASSIFICATION_SETTINGS,
+ "pore_separation": PORE_SEPARATION_SETTINGS,
+ "pore_merging": PORE_MERGING_SETTINGS,
+ "feature_extraction": FEATURE_EXTRACTION_SETTINGS,
+ "analysis_pipeline": ANALYSIS_PIPELINE_SETTINGS,
+ "training": TRAINING_SETTINGS
+}
