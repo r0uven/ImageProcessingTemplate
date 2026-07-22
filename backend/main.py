@@ -3,6 +3,8 @@ from io import BytesIO
 import os
 import tempfile
 import uuid
+
+from fastapi.responses import StreamingResponse
 from app.storage  import ImageStorage
 
 
@@ -172,7 +174,6 @@ async def analyze_image(image_id: str):
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
-
     image_bytes = await file.read()
 
     loader = ImageLoader()
@@ -184,15 +185,32 @@ async def upload_image(file: UploadFile = File(...)):
 
     image_id = str(uuid.uuid4())
 
-    storage.save(image_id, original)   # np.ndarray
+    storage.save(image_id, original)
 
-    buffer = BytesIO()
-    pretty.save(buffer, format="PNG")
-    encoded = base64.b64encode(buffer.getvalue()).decode()
+    # сохраняем превью
+    storage.save_preview(image_id, pretty)
 
     return {
         "image_id": image_id,
-        "preview": f"data:image/png;base64,{encoded}",
+        "preview_url": f"/images/{image_id}/preview",
         "width": pretty.width,
         "height": pretty.height
     }
+
+@app.get("/images/{image_id}/preview")
+async def get_preview(image_id: str):
+    print("requested:", image_id)
+
+    image = storage.get_preview(image_id)
+
+    print("image:", image)
+    print("size:", image.size)
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="image/png"
+    )

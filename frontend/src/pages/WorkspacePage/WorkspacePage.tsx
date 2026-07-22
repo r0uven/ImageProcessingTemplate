@@ -23,28 +23,25 @@ import {
   ModeButton,
   ClearButton,
 } from "./WorkspacePage.styles";
-import { uploadImage } from "@/api/uploadImage";
+import { uploadImage } from "@/api/image/uploadImage";
 import { ProcessingSettings } from "./widgets/ProcessingSettings";
 import { formatToAccept } from "./util/textFormatter";
 import { useNavigate } from "react-router-dom";
+import { analyzeImage } from "@/api/image/analysisApi";
+import type { UploadResponse } from "@/api/types";
 
 type Mode = "original" | "processed";
 
-export type WorkspaceImage = {
-  preview: string;
-  image_id: string;
-  width: number;
-  height: number;
-};
-
 type ViewerState = {
-  original: WorkspaceImage | null;
-  processed: WorkspaceImage | null;
+  original: UploadResponse | null;
+  processed: UploadResponse | null;
 };
 
 export function WorkspacePage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("original");
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const [viewerState, setViewerState] = useState<ViewerState>({
     original: null,
     processed: null,
@@ -106,7 +103,7 @@ export function WorkspacePage() {
 
     setViewerState({
       original: {
-        preview: result.preview,
+        preview_url: result.preview_url,
         image_id: result.image_id,
         width: result.width,
         height: result.height,
@@ -125,6 +122,30 @@ export function WorkspacePage() {
 
     setMode("original");
   }
+
+  const handleProcess = async () => {
+    try {
+      setIsProcessing(true);
+
+      const result = await analyzeImage(viewerState.original?.preview_url);
+
+      setViewerState((prev) => ({
+        ...prev,
+        processed: {
+          preview_url: result.preprocessed_image,
+          image_id: result.image_id,
+          width: result.width,
+          height: result.height,
+        },
+      }));
+
+      setMode("processed");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const currentImage =
     mode === "original"
@@ -146,8 +167,8 @@ export function WorkspacePage() {
           </SettingsContent>
 
           <ActionArea>
-            <ProcessButton onClick={() => setMode("processed")}>
-              Обработать
+            <ProcessButton onClick={handleProcess} disabled={isProcessing}>
+              {isProcessing ? "Обработка..." : "Обработать"}
             </ProcessButton>
 
             <FeaturesButton
@@ -203,8 +224,11 @@ export function WorkspacePage() {
           ) : (
             <>
               <ImageWrapper>
-                {currentImage?.preview && (
-                  <img src={currentImage.preview} alt="workspace" />
+                {currentImage?.preview_url && (
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}${currentImage.preview_url}`}
+                    alt="workspace"
+                  />
                 )}
               </ImageWrapper>
 
