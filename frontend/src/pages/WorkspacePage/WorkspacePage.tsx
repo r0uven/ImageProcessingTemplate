@@ -126,13 +126,16 @@ export function WorkspacePage() {
   const handleProcess = async () => {
     try {
       setIsProcessing(true);
-
-      const result = await analyzeImage(viewerState.original?.preview_url);
+      if (!viewerState.original) return;
+      const result = await analyzeImage(
+        viewerState.original.image_id,
+        processingSettings,
+      );
 
       setViewerState((prev) => ({
         ...prev,
         processed: {
-          preview_url: result.preprocessed_image,
+          preview_url: result.segmentation_mask,
           image_id: result.image_id,
           width: result.width,
           height: result.height,

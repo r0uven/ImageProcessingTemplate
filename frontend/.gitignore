@@ -23,14 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Images
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
-*.svg
-*.bmp
-*.ico
-*.tiff
-*.avifs

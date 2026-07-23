@@ -21,8 +21,31 @@ export interface AnalysisResponse extends ImageResponse {
 }
 
 export interface ProcessingParameters {
-  modelId?: string;
-  threshold?: number;
-  minObjectArea?: number;
-  usePostprocessing?: boolean;
+  preprocessing: {
+    denoise: boolean;
+    normalize: boolean;
+    contrastEnhancement: boolean;
+    smoothing: boolean;
+    filterSize: number;
+  };
+
+  postprocessing: {
+    removeSmallObjects: boolean;
+    minObjectArea: number;
+    fillHoles: boolean;
+    morphologyEnabled: boolean;
+    morphologyOperation: string;
+    kernelSize: number;
+  };
+
+  objectDetection: {
+    connectivity: 4 | 8;
+    minObjectArea: number;
+  };
+
+  poreSeparation: {
+    enabled: boolean;
+    validateResult: boolean;
+    keepUnseparated: boolean;
+  };
 }

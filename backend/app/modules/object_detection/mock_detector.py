@@ -28,7 +28,12 @@ class MockDetector(DetectorInterface):
         min_object_area = settings[
             "min_object_area"
         ]
-
+        
+        if mask.ndim == 3:
+            if mask.shape[-1] == 1:
+                mask = mask[..., 0]
+            else:
+                mask = mask[:, :, 0]
         detection_mask = np.logical_not(mask)
 
         labeled_mask = label(detection_mask)

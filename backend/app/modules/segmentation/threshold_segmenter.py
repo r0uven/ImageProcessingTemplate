@@ -25,9 +25,11 @@ class ThresholdSegmenter:
             if invert
             else cv2.THRESH_BINARY
         )
+        
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         _, mask = cv2.threshold(
-            image,
+            gray,
             threshold_value,
             255,
             threshold_type

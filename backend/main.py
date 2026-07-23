@@ -9,12 +9,10 @@ from app.storage  import ImageStorage
 
 
 
-from app.utils.image_encoding import (
-    encode_image_to_base64,
-    encode_figure_to_base64
-)
+
 from fastapi import (
     FastAPI,
+    HTTPException,
     UploadFile,
     File
 )
@@ -38,6 +36,9 @@ from app.pipeline.pipeline_context import (
 from app.entities.image_data import (
     ImageData
 )
+from app.modules.visualisation.overlay_renderer import OverlayRenderer
+from app.utils.converterToPillow import image_to_buffer
+from app.schemas.analyze_request import AnalyzeRequest
 
 
 app = FastAPI()
@@ -73,14 +74,23 @@ def root():
 
 
 @app.post("/analyze/{image_id}")
-async def analyze_image(image_id: str):
-
+async def analyze_image(
+    image_id: str,
+    parametrs: AnalyzeRequest
+):
     image = storage.get(image_id)
 
+    
+    if image is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Image not found"
+        )
+    
     image_data = ImageData(
         filename=image_id,
         original_image=image,
-        image_shape=image.shape
+        image_shape=image.size
     )
 
     pipeline = AnalysisPipeline()
@@ -89,51 +99,13 @@ async def analyze_image(image_id: str):
 
     result = pipeline.run(context)
 
-    preprocessed_base64 = (
-        encode_image_to_base64(
-            result.image_data.preprocessed_image
-        )
-    )
-
-    segmentation_base64 = (
-        encode_image_to_base64(
-            result.image_data.segmentation_mask
-        )
-    )
-
-    postprocessed_base64 = (
-        encode_image_to_base64(
-            result.image_data.postprocessed_mask
-        )
-    )
-
+    
 
     detected_objects = (
         result.analysis_result.objects
     )
 
-    pore_areas = [
-        obj.area
-        for obj
-        in detected_objects
-    ]
-
-    mean_area = (
-        sum(pore_areas) / len(pore_areas)
-        if pore_areas
-        else 0
-    )
-
-    image_area = (
-        image.shape[0]
-        * image.shape[1]
-    )
-
-    pore_area_sum = sum(pore_areas)
-
-    porosity = (
-        pore_area_sum / image_area
-    )
+    
 
     overlay_renderer = OverlayRenderer()
 
@@ -144,33 +116,57 @@ async def analyze_image(image_id: str):
         )
     )
 
-    overlay_base64 = (
-        encode_figure_to_base64(
-            overlay_figure
-        )
+    storage.save_analysis_image(
+        image_id,
+        "preprocessed",
+        result.image_data.preprocessed_image
+    )
+
+    storage.save_analysis_image(
+        image_id,
+        "segmentation",
+        result.image_data.segmentation_mask
+    )
+
+    storage.save_analysis_image(
+        image_id,
+        "postprocessed",
+        result.image_data.postprocessed_mask
+    )
+
+    storage.save_analysis_image(
+        image_id,
+        "overlay",
+        overlay_figure
     )
 
     return {
+    "status": "success",
+    "image_id": image_id,
+    "width": None,
+    "height": None,
 
-        "status": "success",
+    "detected_objects":
+        result.analysis_result.detected_objects_count,
 
+    "mean_area":
+        result.analysis_result.mean_area,
 
-        "detected_objects": len(
-            detected_objects
-        ),
+    "porosity":
+        result.analysis_result.porosity,
 
-        "mean_area": mean_area,
+    "preprocessed_image":
+        f"/images/{image_id}/preprocessed",
 
-        "porosity": porosity,
+    "segmentation_mask":
+        f"/images/{image_id}/segmentation",
 
-        "preprocessed_image": preprocessed_base64,
+    "postprocessed_mask":
+        f"/images/{image_id}/postprocessed",
 
-        "segmentation_mask": segmentation_base64,
-
-        "postprocessed_mask": postprocessed_base64,
-
-        "detection_overlay": overlay_base64
-    }
+    "detection_overlay":
+        f"/images/{image_id}/overlay"
+}
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
@@ -186,7 +182,7 @@ async def upload_image(file: UploadFile = File(...)):
     image_id = str(uuid.uuid4())
 
     storage.save(image_id, original)
-
+    print("saved:", image_id)
     # сохраняем превью
     storage.save_preview(image_id, pretty)
 
@@ -209,6 +205,29 @@ async def get_preview(image_id: str):
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="image/png"
+    )
+
+@app.get("/images/{image_id}/{image_type}")
+async def get_analysis_image(
+    image_id: str,
+    image_type: str
+):
+    image = storage.get_analysis_image(
+        image_id,
+        image_type
+    )
+
+    if image is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Image not found"
+        )
+
+    buffer = image_to_buffer(image)
 
     return StreamingResponse(
         buffer,

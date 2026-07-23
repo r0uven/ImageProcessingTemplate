@@ -7,12 +7,14 @@
 ### Backend
 
 ```bash
+cd backend //если в общей папке
 uvicorn main:app --reload
 ```
 
 ### Frontend (Tauri)
 
 ```bash
+cd frontend
 npm run tauri dev
 ```
 

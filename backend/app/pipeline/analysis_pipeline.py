@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+
 from app.modules.preprocessing.preprocessor import Preprocessor
 from app.modules.segmentation.threshold_segmenter import (
     ThresholdSegmenter
@@ -10,6 +12,7 @@ from app.modules.object_detection.mock_detector import (
 )
 
 from app.pipeline.pipeline_context import PipelineContext
+from app.modules.feature_extraction.feature_extractor import FeatureExtractor
 
 
 class AnalysisPipeline:
@@ -19,6 +22,7 @@ class AnalysisPipeline:
         self.preprocessor = Preprocessor()
         self.postprocessor = Postprocessor()
         self.segmenter = ThresholdSegmenter()
+        self.feature_extractor = FeatureExtractor()
 
     def run(
         self,
@@ -48,7 +52,7 @@ class AnalysisPipeline:
                 preprocessed_image
             )
         )
-
+        print(segmentation_mask.shape)
         context.image_data.segmentation_mask = (
             segmentation_mask
         )
@@ -80,6 +84,8 @@ class AnalysisPipeline:
         context.analysis_result.detected_objects_count = (
             len(detected_objects)
         )
+
+        self.feature_extractor.extract(context)
 
         print(
             f"Detected objects: "
