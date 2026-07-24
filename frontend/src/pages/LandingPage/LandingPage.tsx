@@ -16,7 +16,6 @@ import {
   BottomText,
   Content,
 } from "./LandingPage.styles";
-import { deleteTool, getAllTools } from "../../database/tools.repository";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -27,10 +26,9 @@ export function LandingPage() {
     let mounted = true;
 
     async function init() {
-      const data = await getAllTools();
-      const reverseData = data.toReversed();
+
       if (mounted) {
-        setTools(reverseData);
+
       }
     }
 
@@ -42,7 +40,7 @@ export function LandingPage() {
   }, []);
 
   async function removeTool(id: string) {
-    await deleteTool(id);
+
     const dir = await appDataDir();
 
     console.log(dir);

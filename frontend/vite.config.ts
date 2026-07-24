@@ -8,6 +8,14 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  server: {
+    watch: {
+      ignored: [
+        "**/src-tauri/**",
+        "**/target/**",
+      ],
+    },
+  },
   plugins: [svgr(), react()],
   resolve: {
     alias: {
