@@ -125,6 +125,7 @@ async def analyze_image(image_id: str, parametrs: AnalyzeRequest):
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
+    storage = app.state.storage
     image_bytes = await file.read()
 
     loader = ImageLoader()
@@ -148,6 +149,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 @app.get("/images/{image_id}/preview")
 async def get_preview(image_id: str):
+    storage = app.state.storage
     print("requested:", image_id)
 
     image = storage.get_preview(image_id)
@@ -164,6 +166,7 @@ async def get_preview(image_id: str):
 
 @app.get("/images/{image_id}/{image_type}")
 async def get_analysis_image(image_id: str, image_type: str):
+    storage = app.state.storage
     image = storage.get_analysis_image(image_id, image_type)
 
     if image is None:
@@ -172,3 +175,10 @@ async def get_analysis_image(image_id: str, image_type: str):
     buffer = image_to_buffer(image)
 
     return StreamingResponse(buffer, media_type="image/png")
+
+
+@app.get("/tools")
+async def get_tools():
+    toolRepository = app.state.tool_repository
+
+    return toolRepository.get_all()

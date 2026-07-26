@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { ToolCard } from "../../components/ToolCard/ToolCard";
 
 import type { Tool } from "../../types/tool";
-import { appDataDir } from "@tauri-apps/api/path";
 
 import {
   PageContainer,
@@ -16,6 +15,7 @@ import {
   BottomText,
   Content,
 } from "./LandingPage.styles";
+import { deleteTool, getTools } from "@/api/tools/tools.api";
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -23,28 +23,34 @@ export function LandingPage() {
   const [tools, setTools] = useState<Tool[]>([]);
 
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
-    async function init() {
+    const loadTools = async () => {
+      try {
+        const data = await getTools();
 
-      if (mounted) {
-
+        if (isMounted) {
+          setTools(data);
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки инструментов:", error);
       }
-    }
+    };
 
-    init();
+    loadTools();
 
     return () => {
-      mounted = false;
+      isMounted = false;
     };
   }, []);
 
   async function removeTool(id: string) {
-
-    const dir = await appDataDir();
-
-    console.log(dir);
-    setTools((prev) => prev.filter((tool) => tool.id !== id));
+    try {
+      await deleteTool(id);
+      setTools((prev) => prev.filter((tool) => tool.id !== id));
+    } catch (error) {
+      console.error("Ошибка удаления:", error);
+    }
   }
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import * as S from "./HistoryPage.styled.tsx";
+import { compareAsc, compareDesc, parse } from "date-fns";
 
 interface ProcessingHistoryItem {
   id: number;
@@ -33,15 +34,44 @@ export const HistoryPage = () => {
   const [sort, setSort] = useState("");
 
   const [filter, setFilter] = useState<"ALL" | "SUCCESS" | "FAILED">("ALL");
-  const filteredHistory = history.filter((item) => {
-    const matchesSearch = item.filename
-      .toLowerCase()
-      .includes(search.toLowerCase());
 
-    const matchesStatus = filter === "ALL" || item.status === filter;
+  const parseHistoryDate = (date: string) =>
+    parse(date, "dd.MM.yyyy HH:mm", new Date());
 
-    return matchesSearch && matchesStatus;
-  });
+  const filteredHistory = [...history]
+    .filter((item) => {
+      const matchesSearch = item.filename
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+      const matchesStatus = filter === "ALL" || item.status === filter;
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sort) {
+        case "date-desc":
+          return compareDesc(
+            parseHistoryDate(a.createdAt),
+            parseHistoryDate(b.createdAt),
+          );
+
+        case "date-asc":
+          return compareAsc(
+            parseHistoryDate(a.createdAt),
+            parseHistoryDate(b.createdAt),
+          );
+
+        case "name":
+          return a.filename.localeCompare(b.filename);
+
+        case "duration":
+          return a.duration - b.duration;
+
+        default:
+          return 0;
+      }
+    });
 
   // TODO заменить на запрос к backend
   useEffect(() => {
@@ -60,7 +90,7 @@ export const HistoryPage = () => {
         },
         {
           id: 2,
-          filename: "road_002.png",
+          filename: "test.png",
           modelName: "UNet v1",
           createdAt: "18.06.2026 15:40",
           duration: 0.41,
