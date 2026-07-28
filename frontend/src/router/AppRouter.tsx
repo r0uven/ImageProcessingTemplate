@@ -9,7 +9,7 @@ import { BackButton } from "../components/BackButton/BackButton";
 import { CreateAiPage } from "@/pages/CreateAiPage/CreateAiPage";
 import { TrainingProcessPage } from "@/pages/TrainingProcessPage/TrainingProcessPage";
 import { TrainingResultPage } from "@/pages/TrainingResultPage/TrainingResultPage";
-import { ProcessingMetricsPage } from "@/pages/ProcessingMetricsPage/ProcessingMetricsPage";
+import { ProcessingMetricsPage } from "@/pages/VisualizeMetricsPage/VisualizeMetricsPage";
 
 export function AppRouter() {
   return (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import * as S from "./ProcessingMetricsPage.styled";
+import * as S from "./VisualizeMetricsPage.styled";
 import { DistributionChart } from "@/components/DistributionChart/DistributionChart";
 
 type DistributionType =

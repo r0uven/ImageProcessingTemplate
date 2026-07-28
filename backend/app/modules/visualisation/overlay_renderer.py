@@ -1,26 +1,25 @@
+import io
+
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+from matplotlib import patches
+from PIL import Image
 
 
 class OverlayRenderer:
+    def render_detection_overlay(self, image, detected_objects):
+        fig = plt.figure(figsize=(10, 10), dpi=150)
 
-    def render_detection_overlay(
-        self,
-        image,
-        detected_objects
-    ):
-        fig, ax = plt.subplots(
-            figsize=(10, 10)
-        )
+        ax = plt.Axes(fig, [0, 0, 1, 1])
+        ax.set_axis_off()
+        fig.add_axes(ax)
 
-        # если numpy image
-        ax.imshow(image)
+        ax.imshow(image, cmap="gray")
 
         for obj in detected_objects:
-            if not hasattr(obj, "bbox"):
+            if not hasattr(obj, "bounding_box"):
                 continue
 
-            min_row, min_col, max_row, max_col = obj.bbox
+            min_row, min_col, max_row, max_col = obj.bounding_box
 
             width = max_col - min_col
             height = max_row - min_row
@@ -31,7 +30,7 @@ class OverlayRenderer:
                 height,
                 linewidth=2,
                 edgecolor="red",
-                facecolor="none"
+                facecolor="none",
             )
 
             ax.add_patch(rect)
@@ -42,16 +41,23 @@ class OverlayRenderer:
                 f"#{obj.object_id}",
                 color="yellow",
                 fontsize=10,
-                bbox={
-                    "facecolor": "black",
-                    "alpha": 0.5
-                }
+                bbox={"facecolor": "black", "alpha": 0.5},
             )
 
-        ax.axis("off")
+        buf = io.BytesIO()
 
-        fig.tight_layout(
-            pad=0
+        fig.savefig(
+            buf,
+            format="png",
+            bbox_inches="tight",
+            pad_inches=0,
+            dpi=150,
         )
 
-        return fig
+        plt.close(fig)
+
+        buf.seek(0)
+
+        img = Image.open(buf).convert("RGB")
+
+        return img
