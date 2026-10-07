@@ -151,9 +151,9 @@ export const ImageWrapper = styled.div`
   overflow: hidden;
 
   img {
-    max-width: 100%;
+    max-width: 90%;
 
-    max-height: 100%;
+    max-height: 90%;
 
     object-fit: contain;
   }

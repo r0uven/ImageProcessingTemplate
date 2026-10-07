@@ -92,8 +92,10 @@ async def analyze_image(image_id: str, parametrs: AnalyzeRequest):
 
     overlay_renderer = OverlayRenderer()
 
-    overlay_figure = overlay_renderer.render_detection_overlay(image, detected_objects)
-
+    overlay_figure = overlay_renderer.render_detection_overlay(
+        result.image_data.postprocessed_mask, detected_objects
+    )
+    overlay_figure.save("debug_overlay.png")
     storage.save_analysis_image(
         image_id, "preprocessed", result.image_data.preprocessed_image
     )
@@ -153,9 +155,6 @@ async def get_preview(image_id: str):
     print("requested:", image_id)
 
     image = storage.get_preview(image_id)
-
-    print("image:", image)
-    print("size:", image.size)
 
     buffer = BytesIO()
     image.save(buffer, format="PNG")

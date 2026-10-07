@@ -27,6 +27,7 @@ class AnalysisPipeline:
         print("Preprocessing completed")
 
         segmentation_mask = self.segmenter.segment(preprocessed_image)
+
         print(segmentation_mask.shape)
         context.image_data.segmentation_mask = segmentation_mask
 

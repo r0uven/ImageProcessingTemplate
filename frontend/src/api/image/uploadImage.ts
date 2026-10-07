@@ -6,6 +6,5 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
   formData.append("file", file);
 
   const { data } = await client.post<UploadResponse>("/upload", formData);
-  console.log(data);
   return data;
 }

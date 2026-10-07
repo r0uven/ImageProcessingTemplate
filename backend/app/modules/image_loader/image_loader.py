@@ -1,15 +1,14 @@
+import io
 from pathlib import Path
+
 import cv2
 import numpy as np
-import io
-from PIL import Image
-from matplotlib import pyplot as plt
-
 from app.config.config_loader import APP_SETTINGS
+from matplotlib import pyplot as plt
+from PIL import Image
 
 
 class ImageLoader:
-
     def load_image(self, file_bytes: bytes, filename: str):
         image_settings = APP_SETTINGS["image"]
 
@@ -24,10 +23,7 @@ class ImageLoader:
 
         image_array = np.frombuffer(file_bytes, np.uint8)
 
-        original_image = cv2.imdecode(
-            image_array,
-            cv2.IMREAD_COLOR
-        )
+        original_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
         if original_image is None:
             raise ValueError("Failed to decode image")
@@ -38,13 +34,13 @@ class ImageLoader:
         # convert BGR → RGB for PIL
         rgb_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
-        pretty_image = self.make_pretty_image_plot(
-            rgb_image
-        )
+        pretty_image = self.make_pretty_image_plot(rgb_image)
 
         return original_image, pretty_image
 
-    def make_pretty_image_plot(self, image: np.ndarray, dpi: int = 150, figsize=(6, 6)) -> Image.Image:
+    def make_pretty_image_plot(
+        self, image: np.ndarray, dpi: int = 150, figsize=(6, 6)
+    ) -> Image.Image:
 
         figsize = tuple(float(x) for x in figsize)
 

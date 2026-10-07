@@ -30,11 +30,12 @@ import { useNavigate } from "react-router-dom";
 import { analyzeImage } from "@/api/image/analysisApi";
 import type { UploadResponse } from "@/api/types";
 
-type Mode = "original" | "processed";
+type Mode = "original" | "processed" | "annotated";
 
 type ViewerState = {
   original: UploadResponse | null;
   processed: UploadResponse | null;
+  annotated: UploadResponse | null;
 };
 
 export function WorkspacePage() {
@@ -45,6 +46,7 @@ export function WorkspacePage() {
   const [viewerState, setViewerState] = useState<ViewerState>({
     original: null,
     processed: null,
+    annotated: null,
   });
   const [processingSettings, setProcessingSettings] = useState({
     preprocessing: {
@@ -109,6 +111,7 @@ export function WorkspacePage() {
         height: result.height,
       },
       processed: null,
+      annotated: null,
     });
   }
 
@@ -118,6 +121,7 @@ export function WorkspacePage() {
     setViewerState({
       original: null,
       processed: null,
+      annotated: null,
     });
 
     setMode("original");
@@ -135,7 +139,13 @@ export function WorkspacePage() {
       setViewerState((prev) => ({
         ...prev,
         processed: {
-          preview_url: result.segmentation_mask,
+          preview_url: result.postprocessed_mask,
+          image_id: result.image_id,
+          width: result.width,
+          height: result.height,
+        },
+        annotated: {
+          preview_url: result.detection_overlay,
           image_id: result.image_id,
           width: result.width,
           height: result.height,
@@ -150,10 +160,11 @@ export function WorkspacePage() {
     }
   };
 
-  const currentImage =
-    mode === "original"
-      ? viewerState.original
-      : (viewerState.processed ?? viewerState.original);
+  const currentImage = {
+    original: viewerState.original,
+    annotated: viewerState.annotated ?? viewerState.original,
+    processed: viewerState.processed ?? viewerState.original,
+  }[mode];
 
   return (
     <Page>
@@ -205,6 +216,12 @@ export function WorkspacePage() {
                 onClick={() => setMode("processed")}
               >
                 Результат
+              </ModeButton>
+              <ModeButton
+                active={mode === "annotated"}
+                onClick={() => setMode("annotated")}
+              >
+                Объекты
               </ModeButton>
             </ModeSwitchContainer>
           </ViewerHeader>
