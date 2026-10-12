@@ -87,18 +87,13 @@
   },
 
   "pore_separation": {
+    "enabled": true,
     "apply_only_to_candidates": true,
-
     "preserve_autonomous_pores": true,
-
     "keep_unseparated_candidates": true,
-
     "validate_separation_result": true,
-
     "preserve_parent_link": true,
-
     "evaluate_separation_quality": true,
-
     "quality_metrics": {
       "covered_area": true,
       "lost_area": true,
@@ -112,35 +107,22 @@
 
   "pore_merging": {
     "preserve_object_status": true,
-
     "preserve_parent_object_id": true,
-
     "preserve_separation_quality_metrics": true,
-
     "include_autonomous_pores": true,
-
     "include_separated_objects": true,
-
     "include_unseparated_candidates": true,
-
     "object_statuses": ["autonomous", "separated", "unseparated_candidate"]
   },
 
   "feature_extraction": {
     "calculate_object_features": true,
-
     "calculate_summary_statistics": true,
-
     "preserve_object_status": true,
-
     "preserve_parent_object_id": true,
-
     "include_separation_quality_metrics": true,
-
     "use_status_based_feature_source": true,
-
     "use_scale": false,
-
     "scale_mm_per_pixel": null,
 
     "region_object_features": {
@@ -184,29 +166,19 @@
 
   "analysis_pipeline": {
     "save_intermediate_results": true,
-
     "save_run_parameters": true,
-
     "save_segmentation_mask": true,
-
     "save_postprocessed_mask": true,
-
     "save_classification_result": true,
-
     "save_separation_result": true,
-
     "save_final_objects": true,
-
     "save_features": true
   },
 
   "training": {
     "dataset_pair_format": "image_mask",
-
     "validate_image_mask_size": true,
-
     "allowed_image_formats": [".png", ".bmp", ".tif", ".tiff"],
-
     "allowed_mask_formats": [".png", ".bmp", ".tif", ".tiff"],
 
     "training_params": {

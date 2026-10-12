@@ -1,15 +1,15 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.entities.pore_object import PoreObject
-
 
 @dataclass
 class AnalysisResult:
-    objects: list[PoreObject] = field(default_factory=list)
+    analysis_result_id: str = ""
+    run_id: str = ""
 
-    summary_statistics: dict[str, Any] = field(default_factory=dict)
+    pore_count: int = 0
+    porosity: float = 0.0
+    area: float = 0.0
+    diameter: float = 0.0
 
-    processing_steps: dict[str, Any] = field(default_factory=dict)
-
-    detected_objects_count: int = 0
+    size_distribution: dict[str, Any] = field(default_factory=dict)

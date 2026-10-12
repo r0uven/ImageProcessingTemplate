@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 
 @dataclass
@@ -9,14 +8,14 @@ class PoreObject:
     area: float
     perimeter: float
 
-    centroid: Tuple[float, float]
+    centroid: tuple[float, float]
 
     equivalent_diameter: float
 
-    bounding_box: Optional[Tuple[int, int, int, int]]
+    bounding_box: tuple[int, int, int, int] | None
 
-    roundness: Optional[float]
+    roundness: float | None
 
     status: str = "autonomous"
 
-    parent_object_id: Optional[int] = None
+    parent_object_id: int | None = None

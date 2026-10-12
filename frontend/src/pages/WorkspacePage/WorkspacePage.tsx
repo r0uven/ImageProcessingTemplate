@@ -42,6 +42,7 @@ export function WorkspacePage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("original");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [runId, setRunId] = useState<string | null>(null);
 
   const [viewerState, setViewerState] = useState<ViewerState>({
     original: null,
@@ -136,6 +137,8 @@ export function WorkspacePage() {
         processingSettings,
       );
 
+      setRunId(result.run_id);
+
       setViewerState((prev) => ({
         ...prev,
         processed: {
@@ -187,7 +190,9 @@ export function WorkspacePage() {
 
             <FeaturesButton
               onClick={() => {
-                navigate(`/metrics`);
+                if (!runId) return;
+
+                navigate(`/metrics/${runId}`);
               }}
             >
               Вычислить характеристики

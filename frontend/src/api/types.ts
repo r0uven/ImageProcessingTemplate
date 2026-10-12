@@ -10,10 +10,8 @@ export interface UploadResponse extends ImageResponse {
 
 export interface AnalysisResponse extends ImageResponse {
   status: string;
-  filename: string;
-  mean_area: number;
+  run_id: string;
   detected_objects: number;
-  porosity: number;
   preprocessed_image: string;
   segmentation_mask: string;
   postprocessed_mask: string;

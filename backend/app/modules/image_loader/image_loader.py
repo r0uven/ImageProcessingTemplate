@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from app.config.config_loader import APP_SETTINGS
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from PIL import Image
 
 
@@ -45,7 +46,7 @@ class ImageLoader:
         figsize = tuple(float(x) for x in figsize)
 
         fig = plt.figure(figsize=figsize, dpi=int(dpi))
-        ax = plt.Axes(fig, [0, 0, 1, 1])
+        ax = Axes(fig, (0, 0, 1, 1))
         ax.set_axis_off()
         fig.add_axes(ax)
 
