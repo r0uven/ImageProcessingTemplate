@@ -1,9 +1,8 @@
-
-import type { Tool } from "../../types/tool";
+import type { SegmentationModel } from "../../types/tool";
 import { client } from "../client";
 
 export async function getTools() {
-  const { data } = await client.get<Tool[]>("/tools");
+  const { data } = await client.get<SegmentationModel[]>("/tools");
   return data;
 }
 

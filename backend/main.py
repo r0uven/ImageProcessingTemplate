@@ -16,7 +16,7 @@ from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
 from app.storage.image_storage import ImageStorage
-from app.utils.converterToPillow import image_to_buffer
+from app.utils.converter_to_pillow import image_to_buffer
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse

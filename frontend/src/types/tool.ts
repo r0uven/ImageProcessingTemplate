@@ -1,19 +1,10 @@
-export type Tool = {
-  id: string;
-  name: string;
+export type SegmentationModel = {
+  model_id: string;
+  model_name: string;
+  model_type: "neural_network" | "classical" | "threshold";
+  model_path: string;
   material: string;
-  architecture: string;
   image: string;
   removable: boolean;
-  createdAt: number;
-};
-
-export type ToolRowDB = {
-  id: string;
-  name: string;
-  material: string;
-  architecture: string;
-  image: string | null;
-  removable: number;
   created_at: number;
 };

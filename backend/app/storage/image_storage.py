@@ -16,24 +16,11 @@ class ImageStorage:
     def get_preview(self, image_id):
         return self._preview_store.get(image_id)
 
-    def save_analysis_image(
-        self,
-        image_id,
-        name,
-        image
-    ):
+    def save_analysis_image(self, image_id, name, image):
         if image_id not in self._analysis_store:
             self._analysis_store[image_id] = {}
 
         self._analysis_store[image_id][name] = image
 
-    def get_analysis_image(
-        self,
-        image_id,
-        name
-    ):
-        return (
-            self._analysis_store
-            .get(image_id, {})
-            .get(name)
-        )
+    def get_analysis_image(self, image_id, name):
+        return self._analysis_store.get(image_id, {}).get(name)

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.database.repositories.processing_parameters_repository import (
     ProcessingParametersRepository,
@@ -43,7 +43,7 @@ class AnalysisRepository:
                 model_id,
                 parameters.parametersId,
                 analysis_result_id,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
 

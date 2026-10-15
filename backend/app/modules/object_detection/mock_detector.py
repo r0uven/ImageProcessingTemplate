@@ -1,8 +1,9 @@
 import numpy as np
+from skimage.measure import label, regionprops
+
 from app.config.config_loader import APP_SETTINGS
 from app.entities.pore_object import PoreObject
 from app.modules.object_detection.detector_interface import DetectorInterface
-from skimage.measure import label, regionprops
 
 
 class MockDetector(DetectorInterface):

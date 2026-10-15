@@ -1,4 +1,4 @@
-import type { Tool } from "@/types/tool";
+import type { SegmentationModel } from "@/types/tool";
 import {
   Card,
   CardImage,
@@ -9,7 +9,7 @@ import {
 } from "./ToolCard.styles";
 
 interface Props {
-  tool?: Tool;
+  tool?: SegmentationModel;
 
   onClick: () => void;
 
@@ -30,9 +30,9 @@ export function ToolCard({ tool, onClick, onDelete, isPlus }: Props) {
         <PlusContent>+</PlusContent>
       ) : (
         <>
-          <CardImage src={tool.image} />
+          <CardImage src={tool?.image} />
 
-          {tool.removable && (
+          {tool?.removable && (
             <DeleteButton
               onClick={(event) => {
                 event.stopPropagation();
@@ -45,9 +45,9 @@ export function ToolCard({ tool, onClick, onDelete, isPlus }: Props) {
           )}
 
           <Overlay>
-            <span>{tool.material}</span>
+            <span>{tool?.material}</span>
 
-            <span>{tool.architecture}</span>
+            <span>{tool?.model_type}</span>
           </Overlay>
         </>
       )}

@@ -3,10 +3,11 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from app.config.config_loader import APP_SETTINGS
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from PIL import Image
+
+from app.config.config_loader import APP_SETTINGS
 
 
 class ImageLoader:

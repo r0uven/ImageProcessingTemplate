@@ -3,12 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import * as S from "./VisualizeMetricsPage.styled";
 import { DistributionChart } from "@/components/DistributionChart/DistributionChart";
-import type {
-  DistributionType,
-  DistributionPoint,
-  DistributionStatistics,
-  ProcessingMetrics,
-} from "./types";
+import type { DistributionType, ProcessingMetrics } from "./types";
 import { getProcessingMetrics } from "@/api/metrics/getMetrics";
 
 export const ProcessingMetricsPage = () => {

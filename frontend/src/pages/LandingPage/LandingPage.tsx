@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ToolCard } from "../../components/ToolCard/ToolCard";
 
-import type { Tool } from "../../types/tool";
+import type { SegmentationModel } from "../../types/tool";
 
 import {
   PageContainer,
@@ -20,7 +20,7 @@ import { deleteTool, getTools } from "@/api/tools/tools.api";
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const [tools, setTools] = useState<Tool[]>([]);
+  const [tools, setTools] = useState<SegmentationModel[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,7 +47,7 @@ export function LandingPage() {
   async function removeTool(id: string) {
     try {
       await deleteTool(id);
-      setTools((prev) => prev.filter((tool) => tool.id !== id));
+      setTools((prev) => prev.filter((tool) => tool.model_id !== id));
     } catch (error) {
       console.error("Ошибка удаления:", error);
     }
@@ -71,13 +71,13 @@ export function LandingPage() {
         <CardsGrid>
           {tools.map((tool) => (
             <ToolCard
-              key={tool.id}
+              key={tool.model_id}
               tool={tool}
               onClick={() => {
-                navigate(`/workspace/${tool.id}`);
+                navigate(`/workspace/${tool.model_id}`);
               }}
               onDelete={() => {
-                removeTool(tool.id);
+                removeTool(tool.model_id);
               }}
             />
           ))}

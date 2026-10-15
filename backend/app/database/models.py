@@ -1,5 +1,6 @@
 # ORM модели
 from dataclasses import dataclass
+from typing import Literal
 
 
 class ImageModel:
@@ -19,11 +20,16 @@ class AnalysisRunModel:
 
 
 @dataclass
-class Tool:
-    id: str
-    name: str
+class SegmentationModel:
+    model_id: str
+    model_name: str
+    model_type: Literal[
+        "neural_network",
+        "classical",
+        "threshold",
+    ]
+    model_path: str
     material: str
-    architecture: str
     image: str
     removable: bool
     created_at: int

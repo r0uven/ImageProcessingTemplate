@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS segmentation_models (
         )
     ),
 
-    model_path TEXT NOT NULL,
+    model_path TEXT,
 
     material TEXT NOT NULL,
 
