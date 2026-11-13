@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import TrashSVG from "@/assets/TrashSVG.svg?react";
 import settings from "../../../../backend/app/config/settings.json";
 
@@ -26,7 +27,6 @@ import {
 import { uploadImage } from "@/api/image/uploadImage";
 import { ProcessingSettings } from "./widgets/ProcessingSettings";
 import { formatToAccept } from "./util/textFormatter";
-import { useNavigate } from "react-router-dom";
 import { analyzeImage } from "@/api/image/analysisApi";
 import type { UploadResponse } from "@/api/types";
 
@@ -40,6 +40,7 @@ type ViewerState = {
 
 export function WorkspacePage() {
   const navigate = useNavigate();
+  const { toolId } = useParams<{ toolId: string }>();
   const [mode, setMode] = useState<Mode>("original");
   const [isProcessing, setIsProcessing] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export function WorkspacePage() {
     processed: null,
     annotated: null,
   });
+
   const [processingSettings, setProcessingSettings] = useState({
     preprocessing: {
       denoise: settings.preprocessing.denoise,
@@ -56,26 +58,47 @@ export function WorkspacePage() {
       contrastEnhancement: settings.preprocessing.contrast_enhancement,
       smoothing: settings.preprocessing.smoothing,
       filterSize: settings.preprocessing.filter_size,
+      preserveSize: settings.preprocessing.preserve_size,
     },
-
-    postprocessing: {
-      removeSmallObjects: settings.postprocessing.remove_small_objects,
-      minObjectArea: settings.postprocessing.min_object_area,
-      fillHoles: settings.postprocessing.fill_holes,
-      morphologyEnabled: settings.postprocessing.morphology.enabled,
-      morphologyOperation: settings.postprocessing.morphology.operation,
-      kernelSize: settings.postprocessing.morphology.kernel_size,
+    segmentation: {
+      method: settings.segmentation.method,
+      outputMask: {
+        foregroundValue: settings.segmentation.output.foreground_value,
+        backgroundValue: settings.segmentation.output.background_value,
+        preserveSize: settings.segmentation.output.preserve_size,
+      },
+      threshold: {
+        thresholdValue: settings.segmentation.threshold.threshold_value,
+        invert: settings.segmentation.threshold.invert,
+      },
+      neural: {
+        modelType: settings.segmentation.neural.selected_model,
+        entities: settings.segmentation.neural.entities,
+        defaultConfidenceThreshold:
+          settings.segmentation.neural.default_confidence_threshold,
+        device: settings.segmentation.neural.device,
+      },
     },
-
-    objectDetection: {
-      connectivity: settings.object_detection.connectivity as 4 | 8,
-      minObjectArea: settings.object_detection.min_object_area,
-    },
-
-    poreSeparation: {
-      enabled: true,
-      validateResult: settings.pore_separation.validate_separation_result,
-      keepUnseparated: settings.pore_separation.keep_unseparated_candidates,
+    separation: {
+      enabled: settings.pore_separation.enabled,
+      applyOnlyToCandidates: settings.pore_separation.apply_only_to_candidates,
+      preserveAutonomousPores:
+        settings.pore_separation.preserve_autonomous_pores,
+      keepUnseparatedCandidates:
+        settings.pore_separation.keep_unseparated_candidates,
+      validateSeparationResult:
+        settings.pore_separation.validate_separation_result,
+      preserveParentLink: settings.pore_separation.preserve_parent_link,
+      evaluateSeparationQuality:
+        settings.pore_separation.evaluate_separation_quality,
+      qualityMetrics: {
+        coveredArea: settings.pore_separation.quality_metrics.covered_area,
+        lostArea: settings.pore_separation.quality_metrics.lost_area,
+        extraArea: settings.pore_separation.quality_metrics.extra_area,
+        coverageRatio: settings.pore_separation.quality_metrics.coverage_ratio,
+        extraRatio: settings.pore_separation.quality_metrics.extra_ratio,
+      },
+      algorithmParams: settings.pore_separation.algorithm_params,
     },
   });
 
@@ -98,9 +121,6 @@ export function WorkspacePage() {
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
 
     const result = await uploadImage(file);
 
@@ -126,16 +146,19 @@ export function WorkspacePage() {
     });
 
     setMode("original");
+    setRunId(null);
   }
 
   const handleProcess = async () => {
     try {
       setIsProcessing(true);
       if (!viewerState.original) return;
-      const result = await analyzeImage(
-        viewerState.original.image_id,
-        processingSettings,
-      );
+
+      const result = await analyzeImage(viewerState.original.image_id, {
+        parametersId: crypto.randomUUID(),
+        modelId: toolId || "default_model",
+        ...processingSettings,
+      });
 
       setRunId(result.run_id);
 
@@ -158,6 +181,7 @@ export function WorkspacePage() {
       setMode("processed");
     } catch (e) {
       console.error(e);
+      alert("Ошибка при обработке изображения. Проверьте консоль.");
     } finally {
       setIsProcessing(false);
     }
@@ -176,24 +200,26 @@ export function WorkspacePage() {
           <SettingsContent>
             <ProcessingSettings
               preprocessing={processingSettings.preprocessing}
-              postprocessing={processingSettings.postprocessing}
-              objectDetection={processingSettings.objectDetection}
-              poreSeparation={processingSettings.poreSeparation}
+              segmentation={processingSettings.segmentation}
+              separation={processingSettings.separation}
               onChange={updateSection}
             />
           </SettingsContent>
 
           <ActionArea>
-            <ProcessButton onClick={handleProcess} disabled={isProcessing}>
+            <ProcessButton
+              onClick={handleProcess}
+              disabled={isProcessing || !viewerState.original}
+            >
               {isProcessing ? "Обработка..." : "Обработать"}
             </ProcessButton>
 
             <FeaturesButton
               onClick={() => {
                 if (!runId) return;
-
                 navigate(`/metrics/${runId}`);
               }}
+              disabled={!runId}
             >
               Вычислить характеристики
             </FeaturesButton>
@@ -222,6 +248,7 @@ export function WorkspacePage() {
               >
                 Результат
               </ModeButton>
+
               <ModeButton
                 active={mode === "annotated"}
                 onClick={() => setMode("annotated")}
