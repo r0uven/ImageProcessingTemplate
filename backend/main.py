@@ -25,6 +25,7 @@ from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
 from app.storage.image_storage import ImageStorage
+from app.utils.run_hash import compute_run_hash
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
@@ -153,6 +154,12 @@ def models() -> dict[str, str]:
 # ============================================================
 # Вспомогательные функции
 # ============================================================
+
+
+def _require_pil(image: np.ndarray | Image.Image | None, name: str) -> Image.Image:
+    if image is None:
+        raise ValueError(f"Изображение '{name}' отсутствует в результате анализа")
+    return _to_pil(image)
 
 
 def _to_pil(image: np.ndarray | Image.Image) -> Image.Image:
@@ -340,35 +347,58 @@ def analyze_image(
         result.objects,
     )
 
-    run_id = str(uuid.uuid4())
-    analysis_result_id = str(uuid.uuid4())
-    analysis.analysis_result_id = analysis_result_id
-    analysis.run_id = run_id
+    analysis_images: dict[str, Image.Image] = {
+        "preprocessed": _require_pil(
+            result.image_data.preprocessed_image, "preprocessed"
+        ),
+        "segmentation": _require_pil(
+            result.image_data.segmentation_mask, "segmentation"
+        ),
+        "postprocessed": _require_pil(
+            result.image_data.postprocessed_mask, "postprocessed"
+        ),
+        "overlay": _require_pil(overlay, "overlay"),
+    }
 
-    analysis_repository.create_analysis_result(
-        analysis_result_id=analysis_result_id,
-        pore_count=analysis.pore_count,
-        porosity=analysis.porosity,
-        area=analysis.area,
-        diameter=analysis.diameter,
-        size_distribution=analysis.size_distribution,
-    )
-    analysis_repository.create_run(
-        run_id=run_id,
+    # Хеш всего запуска одновременно является его ID и именем подпапки с картинками.
+    # Абсолютно одинаковые обработки дают одинаковый хеш и не сохраняются повторно.
+    run_id = compute_run_hash(
         image_id=image_id,
         model_id=parameters.modelId,
-        analysis_result_id=analysis_result_id,
         parameters=parameters,
+        analysis_result=analysis,
+        images=analysis_images,
     )
 
-    analysis_images = {
-        "preprocessed": result.image_data.preprocessed_image,
-        "segmentation": result.image_data.segmentation_mask,
-        "postprocessed": result.image_data.postprocessed_mask,
-        "overlay": overlay,
-    }
+    analysis.run_id = run_id
+
+    if analysis_repository.get_run(run_id) is None:
+        analysis_result_id = str(uuid.uuid4())
+        analysis.analysis_result_id = analysis_result_id
+
+        analysis_repository.create_analysis_result(
+            analysis_result_id=analysis_result_id,
+            pore_count=analysis.pore_count,
+            porosity=analysis.porosity,
+            area=analysis.area,
+            diameter=analysis.diameter,
+            size_distribution=analysis.size_distribution,
+        )
+        analysis_repository.create_run(
+            run_id=run_id,
+            image_id=image_id,
+            model_id=parameters.modelId,
+            analysis_result_id=analysis_result_id,
+            parameters=parameters,
+        )
+    else:
+        logger.info("Analysis run already exists: run_id=%s", run_id)
+
+    # Если запуск уже сохранён, записываем только недостающие файлы
+    # (например, если они были удалены с диска вручную).
     for name, image_to_save in analysis_images.items():
-        storage.save_analysis_image(run_id, name, _to_pil(image_to_save))
+        if not storage.analysis_image_path(run_id, name).is_file():
+            storage.save_analysis_image(run_id, name, image_to_save)
 
     logger.info(
         "Analysis completed: image_id=%s run_id=%s detected_objects=%s",
