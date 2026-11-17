@@ -278,7 +278,7 @@ export function WorkspacePage() {
               <ImageWrapper>
                 {currentImage?.preview_url && (
                   <img
-                    src={`${import.meta.env.VITE_API_URL}${currentImage.preview_url}`}
+                    src={`${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001"}${currentImage.preview_url}`}
                     alt="workspace"
                   />
                 )}

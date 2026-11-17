@@ -20,6 +20,8 @@ export const ProcessingMetricsPage = () => {
   useEffect(() => {
     if (!runId) {
       setError("Не указан идентификатор обработки");
+      console.log(runId);
+
       setLoading(false);
       return;
     }

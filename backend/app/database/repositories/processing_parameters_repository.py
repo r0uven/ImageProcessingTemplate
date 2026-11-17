@@ -1,11 +1,16 @@
 import json
 import sqlite3
+from dataclasses import asdict
 
 from app.entities.processing_parameters import (
+    NeuralSegmentationParameters,
+    OutputMaskParameters,
     PreprocessingParameters,
     ProcessingParameters,
+    QualityMetricsParameters,
     SegmentationParameters,
     SeparationParameters,
+    ThresholdSegmentationParameters,
 )
 
 
@@ -26,9 +31,9 @@ class ProcessingParametersRepository:
             """,
             (
                 params.parameters_id,
-                json.dumps(params.preprocessing.__dict__),
-                json.dumps(params.segmentation.__dict__),
-                json.dumps(params.separation.__dict__),
+                json.dumps(asdict(params.preprocessing)),
+                json.dumps(asdict(params.segmentation)),
+                json.dumps(asdict(params.separation)),
             ),
         )
 
@@ -91,9 +96,38 @@ class ProcessingParametersRepository:
 
     @staticmethod
     def _row_to_model(row: tuple) -> ProcessingParameters:
+        preprocessing_data = json.loads(row[1])
+        segmentation_data = json.loads(row[2])
+        separation_data = json.loads(row[3])
+
         return ProcessingParameters(
             parameters_id=row[0],
-            preprocessing=PreprocessingParameters(**json.loads(row[1])),
-            segmentation=SegmentationParameters(**json.loads(row[2])),
-            separation=SeparationParameters(**json.loads(row[3])),
+            preprocessing=PreprocessingParameters(**preprocessing_data),
+            segmentation=SegmentationParameters(
+                method=segmentation_data["method"],
+                output_mask=OutputMaskParameters(**segmentation_data["output_mask"]),
+                threshold=ThresholdSegmentationParameters(
+                    **segmentation_data["threshold"]
+                ),
+                neural=NeuralSegmentationParameters(**segmentation_data["neural"]),
+            ),
+            separation=SeparationParameters(
+                enabled=separation_data["enabled"],
+                apply_only_to_candidates=separation_data["apply_only_to_candidates"],
+                preserve_autonomous_pores=separation_data["preserve_autonomous_pores"],
+                keep_unseparated_candidates=separation_data[
+                    "keep_unseparated_candidates"
+                ],
+                validate_separation_result=separation_data[
+                    "validate_separation_result"
+                ],
+                preserve_parent_link=separation_data["preserve_parent_link"],
+                evaluate_separation_quality=separation_data[
+                    "evaluate_separation_quality"
+                ],
+                quality_metrics=QualityMetricsParameters(
+                    **separation_data["quality_metrics"]
+                ),
+                algorithm_params=separation_data["algorithm_params"],
+            ),
         )

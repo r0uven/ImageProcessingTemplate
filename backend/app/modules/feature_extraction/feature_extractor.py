@@ -2,9 +2,11 @@ from app.pipeline.pipeline_context import PipelineContext
 
 
 class FeatureExtractor:
-    def _calculate_area(self, obj): ...
+    def _calculate_area(self, obj):
+        return obj.area
 
-    def _calculate_diameter(self, obj): ...
+    def _calculate_diameter(self, obj):
+        return obj.equivalent_diameter
 
     def extract(self, context: PipelineContext) -> PipelineContext:
 
@@ -28,9 +30,14 @@ class FeatureExtractor:
 
         pore_count = len(objects)
 
-        mean_area = sum(pore_areas) / pore_count if pore_count else 0
+        mean_area = sum(pore_areas) / pore_count if pore_count else 0.0
+        mean_diameter = sum(pore_diameters) / pore_count if pore_count else 0.0
 
-        mean_diameter = sum(pore_diameters) / pore_count if pore_count else 0
+        # Пока неизвестно действительно ли нужна защита от нулевых значений.
+        # if mean_area <= 0:
+        #     mean_area = 1.0
+        # if mean_diameter <= 0:
+        #     mean_diameter = 1.0
 
         # =========================================================
         # Porosity

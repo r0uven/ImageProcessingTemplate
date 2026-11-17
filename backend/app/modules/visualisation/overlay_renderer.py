@@ -1,5 +1,8 @@
 import io
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from PIL import Image

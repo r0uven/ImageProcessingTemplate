@@ -28,7 +28,7 @@ export function AppRouter() {
           element={<TrainingProcessPage />}
         />
         <Route path="/training/:id/result" element={<TrainingResultPage />} />
-        <Route path="/metrics/:id" element={<ProcessingMetricsPage />} />
+        <Route path="/metrics/:runId" element={<ProcessingMetricsPage />} />
       </Routes>
     </BrowserRouter>
   );

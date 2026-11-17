@@ -3,12 +3,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 
+@dataclass
 class ImageModel:
     image_id: str
     file_path: str
     width: int
     height: int
     scale_value: float
+    content_hash: str | None = None
 
 
 class AnalysisRunModel:
@@ -17,6 +19,7 @@ class AnalysisRunModel:
     model_id: str
     params_id: str
     created_at: int
+    analysis_result_id: str = ""
 
 
 @dataclass

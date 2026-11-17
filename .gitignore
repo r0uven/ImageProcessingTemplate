@@ -1,5 +1,6 @@
 # Images
 KARTINKI/
+backend/data/
 
 # Logs
 logs
@@ -29,3 +30,4 @@ dist-ssr
 __pycache__/
 *.py[cod]
 *$py.class
+pyproject.toml
