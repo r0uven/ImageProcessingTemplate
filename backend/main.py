@@ -1,10 +1,11 @@
+import asyncio
 import json
 import logging
 import statistics
 import time
 import uuid
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -26,6 +27,7 @@ from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
 from app.storage.image_storage import ImageStorage
+from app.utils.pretty_image import make_pretty_image_plot
 from app.utils.run_hash import compute_run_hash
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -99,10 +101,22 @@ ToolRepositoryDep = Annotated[ToolRepository, Depends(get_tool_repository)]
 # ============================================================
 
 
+async def _cleanup_cache_periodically(storage: ImageStorage) -> None:
+    """Постепенно удаляет самые старые оригиналы и превью, пока приложение работает."""
+    while True:
+        try:
+            await run_in_threadpool(storage.cleanup_cache)
+        except Exception:
+            logger.exception("Cache cleanup failed")
+
+        await asyncio.sleep(storage.cleanup_interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Поднимает БД, миграции и сервисы; закрывает соединение при остановке."""
     db = get_connection()
+    cleanup_task: asyncio.Task | None = None
 
     try:
         run_migrations(db)
@@ -118,9 +132,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.analysis_pipeline = AnalysisPipeline()
         app.state.overlay_renderer = OverlayRenderer()
 
+        cleanup_task = asyncio.create_task(
+            _cleanup_cache_periodically(app.state.storage)
+        )
+
         logger.info("Application started")
         yield
     finally:
+        if cleanup_task is not None:
+            cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup_task
+
         db.close()
         logger.info("Application stopped")
 
@@ -185,6 +208,16 @@ def _to_pil(image: np.ndarray | Image.Image) -> Image.Image:
     elif image.ndim == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)
+
+
+def _pretty_mask(image: np.ndarray | None, name: str) -> Image.Image:
+    """Рендерит маску в такой же удобный вид, как превью загруженного изображения."""
+    if image is None:
+        raise ValueError(f"Изображение '{name}' отсутствует в результате анализа")
+
+    mask = image.astype(np.uint8) * 255 if image.dtype == bool else image
+
+    return make_pretty_image_plot(mask, cmap="gray")
 
 
 def _png_response(image: Image.Image) -> Response:
@@ -438,7 +471,7 @@ def analyze_image(
         "segmentation": _require_pil(
             result.image_data.segmentation_mask, "segmentation"
         ),
-        "postprocessed": _require_pil(
+        "postprocessed": _pretty_mask(
             result.image_data.postprocessed_mask, "postprocessed"
         ),
         "overlay": _require_pil(overlay, "overlay"),

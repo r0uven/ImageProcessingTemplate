@@ -1,16 +1,10 @@
-import io
 from pathlib import Path
 
 import cv2
-import matplotlib
 import numpy as np
 
-matplotlib.use("Agg")
-from matplotlib import pyplot as plt
-from matplotlib.axes import Axes
-from PIL import Image
-
 from app.config.config_loader import APP_SETTINGS
+from app.utils.pretty_image import make_pretty_image_plot
 
 
 class ImageLoader:
@@ -39,30 +33,6 @@ class ImageLoader:
         # convert BGR → RGB for PIL
         rgb_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
-        pretty_image = self.make_pretty_image_plot(rgb_image)
+        pretty_image = make_pretty_image_plot(rgb_image)
 
         return original_image, pretty_image
-
-    def make_pretty_image_plot(
-        self, image: np.ndarray, dpi: int = 150, figsize=(6, 6)
-    ) -> Image.Image:
-
-        figsize = tuple(float(x) for x in figsize)
-
-        fig = plt.figure(figsize=figsize, dpi=int(dpi))
-        ax = Axes(fig, (0, 0, 1, 1))
-        ax.set_axis_off()
-        fig.add_axes(ax)
-
-        ax.imshow(image)
-
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
-
-        plt.close(fig)
-
-        buf.seek(0)
-
-        img = Image.open(buf).convert("RGB")
-
-        return img
