@@ -16,9 +16,10 @@ class ImageRepository:
                 width,
                 height,
                 scale_value,
-                content_hash
+                content_hash,
+                original_image_name
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 image.image_id,
@@ -27,6 +28,7 @@ class ImageRepository:
                 image.height,
                 image.scale_value,
                 image.content_hash,
+                image.original_image_name,
             ),
         )
         self.connection.commit()
@@ -40,7 +42,8 @@ class ImageRepository:
                 width,
                 height,
                 scale_value,
-                content_hash
+                content_hash,
+                original_image_name
             FROM images
             WHERE image_id = ?
             """,
@@ -63,7 +66,8 @@ class ImageRepository:
                 width,
                 height,
                 scale_value,
-                content_hash
+                content_hash,
+                original_image_name
             FROM images
             WHERE content_hash = ?
             """,
@@ -86,7 +90,8 @@ class ImageRepository:
                 width,
                 height,
                 scale_value,
-                content_hash
+                content_hash,
+                original_image_name
             FROM images
             ORDER BY image_id
             """
@@ -115,11 +120,19 @@ class ImageRepository:
             height=row[3],
             scale_value=row[4],
             content_hash=row[5],
+            original_image_name=row[6],
         )
 
     def update_file_path(self, image_id: str, file_path: str) -> None:
         self.connection.execute(
             "UPDATE images SET file_path = ? WHERE image_id = ?",
             (file_path, image_id),
+        )
+        self.connection.commit()
+
+    def update_original_image_name(self, image_id: str, name: str) -> None:
+        self.connection.execute(
+            "UPDATE images SET original_image_name = ? WHERE image_id = ?",
+            (name, image_id),
         )
         self.connection.commit()

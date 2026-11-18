@@ -146,7 +146,8 @@ class AnalysisRepository:
                 img.file_path,
                 img.width,
                 img.height,
-                result.pore_count
+                result.pore_count,
+                img.original_image_name
             FROM analysis_runs run
             JOIN images img ON img.image_id = run.image_id
             JOIN analysis_results result ON result.analysis_result_id = run.analysis_result_id

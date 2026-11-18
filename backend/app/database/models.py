@@ -11,6 +11,7 @@ class ImageModel:
     height: int
     scale_value: float
     content_hash: str | None = None
+    original_image_name: str | None = None
 
 
 @dataclass

@@ -278,6 +278,7 @@ def _reuse_existing_image(
     existing: ImageModel,
     image_bytes: bytes,
     suffix: str,
+    original_image_name: str,
     preview: Image.Image,
     storage: ImageStorage,
     image_repository: ImageRepository,
@@ -285,6 +286,11 @@ def _reuse_existing_image(
     """Возвращает уже загруженное изображение, восстанавливая оригинал при необходимости."""
     if not Path(existing.file_path).is_file():
         _restore_original(existing, image_bytes, suffix, storage, image_repository)
+
+    if existing.original_image_name != original_image_name:
+        image_repository.update_original_image_name(
+            existing.image_id, original_image_name
+        )
 
     storage.save_preview(existing.image_id, preview)
     logger.info("Image already exists: image_id=%s", existing.image_id)
@@ -327,6 +333,7 @@ async def upload_image(
             existing,
             image_bytes,
             suffix,
+            file.filename,
             preview_image,
             storage,
             image_repository,
@@ -350,6 +357,7 @@ async def upload_image(
                 height=int(original_image.shape[0]),
                 scale_value=1.0,
                 content_hash=content_hash,
+                original_image_name=file.filename,
             )
         )
     except Exception as exc:
@@ -599,6 +607,7 @@ def get_history(
             width,
             height,
             _pore_count,
+            original_image_name,
         ) = run
 
         model = tool_repository.get_by_id(model_id)
@@ -608,7 +617,7 @@ def get_history(
             {
                 "run_id": run_id,
                 "image_id": image_id,
-                "filename": Path(file_path).name,
+                "filename": original_image_name or Path(file_path).name,
                 "modelName": model_name,
                 "createdAt": datetime.fromtimestamp(created_at, tz=UTC).strftime(
                     "%d.%m.%Y %H:%M"

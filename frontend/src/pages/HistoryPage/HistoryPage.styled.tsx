@@ -82,9 +82,9 @@ export const Card = styled.div`
 `;
 
 export const ImagePreview = styled.div`
-  width: 180px;
+  width: 240px;
 
-  height: 180px;
+  height: 240px;
 
   flex-shrink: 0;
 
