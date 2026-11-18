@@ -20,18 +20,31 @@ class AnalysisPipeline:
 
         original_image = context.image_data.original_image
 
+        # =========================================================
+        # Preprocessing
+        # =========================================================
+
         preprocessed_image = self.preprocessor.preprocess(original_image)
 
         context.image_data.preprocessed_image = preprocessed_image
 
         print("Preprocessing completed")
 
+        # =========================================================
+        # Segmentation
+        # =========================================================
+
         segmentation_mask = self.segmenter.segment(preprocessed_image)
 
         print(segmentation_mask.shape)
+
         context.image_data.segmentation_mask = segmentation_mask
 
         print("Segmentation completed")
+
+        # =========================================================
+        # Postprocessing
+        # =========================================================
 
         postprocessed_mask = self.postprocessor.postprocess(segmentation_mask)
 
@@ -39,15 +52,23 @@ class AnalysisPipeline:
 
         print("Postprocessing completed")
 
+        # =========================================================
+        # Object detection
+        # =========================================================
+
         detected_objects = self.detector.detect(postprocessed_mask)
 
-        context.analysis_result.objects = detected_objects
+        context.objects = detected_objects
 
-        context.analysis_result.detected_objects_count = len(detected_objects)
+        print(f"Detected objects: {len(detected_objects)}")
+
+        # =========================================================
+        # Feature extraction
+        # =========================================================
 
         self.feature_extractor.extract(context)
 
-        print(f"Detected objects: {len(detected_objects)}")
+        print("Feature extraction completed")
 
         print("Pipeline finished")
 

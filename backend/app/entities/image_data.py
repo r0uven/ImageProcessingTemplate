@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -12,8 +11,8 @@ class ImageData:
 
     image_shape: tuple[int, int] | None = None
 
-    preprocessed_image: Optional[np.ndarray] = None
+    preprocessed_image: np.ndarray | None = None
 
-    segmentation_mask: Optional[np.ndarray] = None
+    segmentation_mask: np.ndarray | None = None
 
-    postprocessed_mask: Optional[np.ndarray] = None
+    postprocessed_mask: np.ndarray | None = None

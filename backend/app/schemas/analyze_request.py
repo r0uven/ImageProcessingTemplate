@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -7,6 +9,7 @@ class PreprocessingRequest(BaseModel):
     contrastEnhancement: bool
     smoothing: bool
     filterSize: int
+    preserveSize: bool
 
 
 class PostprocessingRequest(BaseModel):
@@ -23,14 +26,54 @@ class ObjectDetectionRequest(BaseModel):
     minObjectArea: int
 
 
+class QualityMetricsRequest(BaseModel):
+    coveredArea: bool
+    lostArea: bool
+    extraArea: bool
+    coverageRatio: bool
+    extraRatio: bool
+
+
 class PoreSeparationRequest(BaseModel):
     enabled: bool
-    validateResult: bool
-    keepUnseparated: bool
+    applyOnlyToCandidates: bool
+    preserveAutonomousPores: bool
+    keepUnseparatedCandidates: bool
+    validateSeparationResult: bool
+    preserveParentLink: bool
+    evaluateSeparationQuality: bool
+    qualityMetrics: QualityMetricsRequest
+    algorithmParams: dict[str, Any]
+
+
+class OutputMaskParametersRequest(BaseModel):
+    foregroundValue: int
+    backgroundValue: int
+    preserveSize: bool
+
+
+class ThresholdSegmentationRequest(BaseModel):
+    thresholdValue: int
+    invert: bool
+
+
+class NeuralSegmentationRequest(BaseModel):
+    modelType: str | None
+    entities: dict[str, Any]
+    defaultConfidenceThreshold: float
+    device: str
+
+
+class SegmentationRequest(BaseModel):
+    method: str
+    outputMask: OutputMaskParametersRequest
+    threshold: ThresholdSegmentationRequest
+    neural: NeuralSegmentationRequest
 
 
 class AnalyzeRequest(BaseModel):
+    parametersId: str
+    modelId: str
     preprocessing: PreprocessingRequest
-    postprocessing: PostprocessingRequest
-    objectDetection: ObjectDetectionRequest
-    poreSeparation: PoreSeparationRequest
+    segmentation: SegmentationRequest
+    separation: PoreSeparationRequest

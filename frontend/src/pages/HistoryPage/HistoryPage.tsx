@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import * as S from "./HistoryPage.styled.tsx";
 import { compareAsc, compareDesc, parse } from "date-fns";
+import { getHistory } from "@/api/history/getHistory";
 
 interface ProcessingHistoryItem {
-  id: number;
+  id: string;
 
   filename: string;
 
@@ -73,47 +74,41 @@ export const HistoryPage = () => {
       }
     });
 
-  // TODO заменить на запрос к backend
   useEffect(() => {
-    setTimeout(() => {
-      setHistory([
-        {
-          id: 1,
-          filename: "road_001.png",
-          modelName: "UNet v1",
-          createdAt: "18.06.2026 15:42",
-          duration: 0.38,
-          width: 512,
-          height: 512,
-          status: "SUCCESS",
-          previewUrl: "/test/A.H.1.bmp",
-        },
-        {
-          id: 2,
-          filename: "test.png",
-          modelName: "UNet v1",
-          createdAt: "18.06.2026 15:40",
-          duration: 0.41,
-          width: 512,
-          height: 512,
-          status: "SUCCESS",
-          previewUrl: "/test/A.H.1.bmp",
-        },
-        {
-          id: 3,
-          filename: "satellite.png",
-          modelName: "Segmentation AI",
-          createdAt: "18.06.2026 14:57",
-          duration: 0.62,
-          width: 1024,
-          height: 1024,
-          status: "FAILED",
-          previewUrl: "",
-        },
-      ]);
+    let cancelled = false;
 
-      setLoading(false);
-    }, 700);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const items = await getHistory();
+
+        if (cancelled) return;
+
+        setHistory(
+          items.map((item) => ({
+            id: item.run_id,
+            filename: item.filename,
+            modelName: item.modelName,
+            createdAt: item.createdAt,
+            duration: item.duration,
+            width: item.width,
+            height: item.height,
+            status: item.status,
+            previewUrl: item.previewUrl,
+          })),
+        );
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -192,7 +187,14 @@ export const HistoryPage = () => {
           {filteredHistory.map((item) => (
             <S.Card key={item.id}>
               <S.ImagePreview>
-                <img src={item.previewUrl} alt="" />
+                <img
+                  src={
+                    item.previewUrl
+                      ? `${import.meta.env.VITE_API_URL ?? ""}${item.previewUrl}`
+                      : ""
+                  }
+                  alt=""
+                />
               </S.ImagePreview>
 
               <S.CardContent>

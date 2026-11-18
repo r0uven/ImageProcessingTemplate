@@ -6,7 +6,7 @@ export async function analyzeImage(
   parameters: ProcessingParameters,
 ): Promise<AnalysisResponse> {
   const { data } = await client.post<AnalysisResponse>(
-    `/analyze/${imageId}`,
+    `/analysis/${imageId}`,
     parameters,
   );
 

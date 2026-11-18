@@ -14,20 +14,42 @@ export type ProcessingSettingsState = {
     contrastEnhancement: boolean;
     smoothing: boolean;
     filterSize: number;
+    preserveSize: boolean;
   };
-  postprocessing: {
-    removeSmallObjects: boolean;
-    minObjectArea: number;
-    fillHoles: boolean;
-    morphologyEnabled: boolean;
-    morphologyOperation: string;
-    kernelSize: number;
+  segmentation: {
+    method: string;
+    outputMask: {
+      foregroundValue: number;
+      backgroundValue: number;
+      preserveSize: boolean;
+    };
+    threshold: {
+      thresholdValue: number;
+      invert: boolean;
+    };
+    neural: {
+      modelType: string | null;
+      entities: Record<string, unknown>;
+      defaultConfidenceThreshold: number;
+      device: string;
+    };
   };
-  objectDetection: { connectivity: 4 | 8; minObjectArea: number };
-  poreSeparation: {
+  separation: {
     enabled: boolean;
-    validateResult: boolean;
-    keepUnseparated: boolean;
+    applyOnlyToCandidates: boolean;
+    preserveAutonomousPores: boolean;
+    keepUnseparatedCandidates: boolean;
+    validateSeparationResult: boolean;
+    preserveParentLink: boolean;
+    evaluateSeparationQuality: boolean;
+    qualityMetrics: {
+      coveredArea: boolean;
+      lostArea: boolean;
+      extraArea: boolean;
+      coverageRatio: boolean;
+      extraRatio: boolean;
+    };
+    algorithmParams: Record<string, unknown>;
   };
 };
 
@@ -41,9 +63,8 @@ type ProcessingSettingsProps = ProcessingSettingsState & {
 
 export function ProcessingSettings({
   preprocessing,
-  postprocessing,
-  objectDetection,
-  poreSeparation,
+  segmentation,
+  separation,
   onChange,
 }: ProcessingSettingsProps) {
   return (
@@ -129,150 +150,56 @@ export function ProcessingSettings({
       </Section>
 
       <Section>
-        <SectionTitle>Постобработка</SectionTitle>
-
-        <Grid>
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={postprocessing.removeSmallObjects}
-                onChange={(e) =>
-                  onChange(
-                    "postprocessing",
-                    "removeSmallObjects",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Удалять мелкие объекты</span>
-            </Toggle>
-
-            <Field>
-              <label>Мин. площадь</label>
-              <input
-                type="number"
-                min={1}
-                value={postprocessing.minObjectArea}
-                onChange={(e) =>
-                  onChange(
-                    "postprocessing",
-                    "minObjectArea",
-                    Number(e.target.value),
-                  )
-                }
-              />
-            </Field>
-          </Card>
-
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={postprocessing.fillHoles}
-                onChange={(e) =>
-                  onChange("postprocessing", "fillHoles", e.target.checked)
-                }
-              />
-              <span>Заполнение отверстий</span>
-            </Toggle>
-          </Card>
-
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={postprocessing.morphologyEnabled}
-                onChange={(e) =>
-                  onChange(
-                    "postprocessing",
-                    "morphologyEnabled",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Морфология</span>
-            </Toggle>
-
-            {postprocessing.morphologyEnabled && (
-              <>
-                <Field>
-                  <label>Операция</label>
-                  <select
-                    value={postprocessing.morphologyOperation}
-                    onChange={(e) =>
-                      onChange(
-                        "postprocessing",
-                        "morphologyOperation",
-                        e.target.value,
-                      )
-                    }
-                  >
-                    <option value="opening">Opening</option>
-                    <option value="closing">Closing</option>
-                    <option value="erosion">Erosion</option>
-                    <option value="dilation">Dilation</option>
-                  </select>
-                </Field>
-
-                <Field>
-                  <label>Kernel</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={postprocessing.kernelSize}
-                    onChange={(e) =>
-                      onChange(
-                        "postprocessing",
-                        "kernelSize",
-                        Number(e.target.value),
-                      )
-                    }
-                  />
-                </Field>
-              </>
-            )}
-          </Card>
-        </Grid>
-      </Section>
-
-      <Section>
-        <SectionTitle>Анализ объектов</SectionTitle>
+        <SectionTitle>Сегментация</SectionTitle>
 
         <Grid>
           <Card>
             <Field>
-              <label>Связность</label>
+              <label>Метод</label>
               <select
-                value={objectDetection.connectivity}
+                value={segmentation.method}
                 onChange={(e) =>
-                  onChange(
-                    "objectDetection",
-                    "connectivity",
-                    Number(e.target.value) as 4 | 8,
-                  )
+                  onChange("segmentation", "method", e.target.value)
                 }
               >
-                <option value={4}>4</option>
-                <option value={8}>8</option>
+                <option value="threshold">Пороговая</option>
+                <option value="neural">Нейросеть</option>
               </select>
             </Field>
 
-            <Field>
-              <label>Мин. площадь</label>
-              <input
-                type="number"
-                min={1}
-                value={objectDetection.minObjectArea}
-                onChange={(e) =>
-                  onChange(
-                    "objectDetection",
-                    "minObjectArea",
-                    Number(e.target.value),
-                  )
-                }
-              />
-            </Field>
+            {segmentation.method === "threshold" && (
+              <>
+                <Field>
+                  <label>Порог</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={255}
+                    value={segmentation.threshold.thresholdValue}
+                    onChange={(e) =>
+                      onChange("segmentation", "threshold", {
+                        ...segmentation.threshold,
+                        thresholdValue: Number(e.target.value),
+                      })
+                    }
+                  />
+                </Field>
+
+                <Toggle>
+                  <input
+                    type="checkbox"
+                    checked={segmentation.threshold.invert}
+                    onChange={(e) =>
+                      onChange("segmentation", "threshold", {
+                        ...segmentation.threshold,
+                        invert: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>Инверсия</span>
+                </Toggle>
+              </>
+            )}
           </Card>
         </Grid>
       </Section>
@@ -285,9 +212,9 @@ export function ProcessingSettings({
             <Toggle>
               <input
                 type="checkbox"
-                checked={poreSeparation.enabled}
+                checked={separation.enabled}
                 onChange={(e) =>
-                  onChange("poreSeparation", "enabled", e.target.checked)
+                  onChange("separation", "enabled", e.target.checked)
                 }
               />
               <span>Включено</span>
@@ -296,27 +223,61 @@ export function ProcessingSettings({
             <Toggle>
               <input
                 type="checkbox"
-                checked={poreSeparation.validateResult}
+                checked={separation.applyOnlyToCandidates}
                 onChange={(e) =>
-                  onChange("poreSeparation", "validateResult", e.target.checked)
+                  onChange(
+                    "separation",
+                    "applyOnlyToCandidates",
+                    e.target.checked,
+                  )
                 }
               />
-              <span>Валидация</span>
+              <span>Только кандидаты</span>
             </Toggle>
 
             <Toggle>
               <input
                 type="checkbox"
-                checked={poreSeparation.keepUnseparated}
+                checked={separation.preserveAutonomousPores}
                 onChange={(e) =>
                   onChange(
-                    "poreSeparation",
-                    "keepUnseparated",
+                    "separation",
+                    "preserveAutonomousPores",
+                    e.target.checked,
+                  )
+                }
+              />
+              <span>Сохранять автономные</span>
+            </Toggle>
+
+            <Toggle>
+              <input
+                type="checkbox"
+                checked={separation.keepUnseparatedCandidates}
+                onChange={(e) =>
+                  onChange(
+                    "separation",
+                    "keepUnseparatedCandidates",
                     e.target.checked,
                   )
                 }
               />
               <span>Сохранять неразделённые</span>
+            </Toggle>
+
+            <Toggle>
+              <input
+                type="checkbox"
+                checked={separation.validateSeparationResult}
+                onChange={(e) =>
+                  onChange(
+                    "separation",
+                    "validateSeparationResult",
+                    e.target.checked,
+                  )
+                }
+              />
+              <span>Валидация результата</span>
             </Toggle>
           </Card>
         </Grid>

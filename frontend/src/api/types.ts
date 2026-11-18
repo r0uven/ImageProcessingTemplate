@@ -5,47 +5,68 @@ export interface ImageResponse {
 }
 
 export interface UploadResponse extends ImageResponse {
-  preview_url: string; //base64
+  preview_url: string;
 }
 
 export interface AnalysisResponse extends ImageResponse {
   status: string;
-  filename: string;
-  mean_area: number;
+  run_id: string;
   detected_objects: number;
-  porosity: number;
   preprocessed_image: string;
   segmentation_mask: string;
   postprocessed_mask: string;
   detection_overlay: string;
 }
 
+// Backend schema: AnalyzeRequest
 export interface ProcessingParameters {
+  parametersId: string;
+  modelId: string;
+
   preprocessing: {
     denoise: boolean;
     normalize: boolean;
     contrastEnhancement: boolean;
     smoothing: boolean;
     filterSize: number;
+    preserveSize: boolean;
   };
 
-  postprocessing: {
-    removeSmallObjects: boolean;
-    minObjectArea: number;
-    fillHoles: boolean;
-    morphologyEnabled: boolean;
-    morphologyOperation: string;
-    kernelSize: number;
+  segmentation: {
+    method: string;
+    outputMask: {
+      foregroundValue: number;
+      backgroundValue: number;
+      preserveSize: boolean;
+    };
+    threshold: {
+      thresholdValue: number;
+      invert: boolean;
+    };
+    neural: {
+      modelType: string | null;
+      entities: Record<string, unknown>;
+      defaultConfidenceThreshold: number;
+      device: string;
+    };
   };
 
-  objectDetection: {
-    connectivity: 4 | 8;
-    minObjectArea: number;
-  };
-
-  poreSeparation: {
+  separation: {
     enabled: boolean;
-    validateResult: boolean;
-    keepUnseparated: boolean;
+    applyOnlyToCandidates: boolean;
+    preserveAutonomousPores: boolean;
+    keepUnseparatedCandidates: boolean;
+    validateSeparationResult: boolean;
+    preserveParentLink: boolean;
+    evaluateSeparationQuality: boolean;
+    qualityMetrics: {
+      coveredArea: boolean;
+      lostArea: boolean;
+      extraArea: boolean;
+      coverageRatio: boolean;
+      extraRatio: boolean;
+    };
+    algorithmParams: Record<string, unknown>;
   };
 }
+
