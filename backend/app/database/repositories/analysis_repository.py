@@ -157,10 +157,31 @@ class AnalysisRepository:
         return cursor.fetchall()
 
     def delete_run(self, run_id: str) -> bool:
-        # delete masks/objects/pores cascade via FK
         cursor = self.db.execute(
-            "DELETE FROM analysis_runs WHERE run_id = ?",
+            """
+            SELECT params_id, analysis_result_id
+            FROM analysis_runs
+            WHERE run_id = ?
+            """,
             (run_id,),
         )
+        row = cursor.fetchone()
+
+        if row is None:
+            return False
+
+        params_id, analysis_result_id = row
+
+        # Маски, объекты и поры удаляются каскадно через внешние ключи.
+        self.db.execute("DELETE FROM analysis_runs WHERE run_id = ?", (run_id,))
+        self.db.execute(
+            "DELETE FROM analysis_results WHERE analysis_result_id = ?",
+            (analysis_result_id,),
+        )
+        self.db.execute(
+            "DELETE FROM processing_parameters WHERE params_id = ?",
+            (params_id,),
+        )
         self.db.commit()
-        return cursor.rowcount > 0
+
+        return True

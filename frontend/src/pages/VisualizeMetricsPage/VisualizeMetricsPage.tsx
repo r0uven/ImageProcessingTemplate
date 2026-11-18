@@ -5,6 +5,7 @@ import * as S from "./VisualizeMetricsPage.styled";
 import { DistributionChart } from "@/components/DistributionChart/DistributionChart";
 import type { DistributionType, ProcessingMetrics } from "./types";
 import { getProcessingMetrics } from "@/api/metrics/getMetrics";
+import { clearAllWorkspaceStates } from "@/pages/WorkspacePage/workspaceStore";
 
 export const ProcessingMetricsPage = () => {
   const navigate = useNavigate();
@@ -55,6 +56,26 @@ export const ProcessingMetricsPage = () => {
     [],
   );
 
+  // Возврат к настройкам предыдущей обработки: страница обработки сохраняет
+  // своё состояние, поэтому изображение и параметры останутся на месте.
+  const goBackToWorkspace = () => {
+    const historyIndex = (
+      window.history.state as { idx?: number } | null
+    )?.idx;
+
+    if (typeof historyIndex === "number" && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/");
+  };
+
+  const startNewProcessing = () => {
+    clearAllWorkspaceStates();
+    navigate("/");
+  };
+
   if (loading) {
     return (
       <S.Page>
@@ -72,7 +93,7 @@ export const ProcessingMetricsPage = () => {
           <S.Title>{error ?? "Результаты не найдены"}</S.Title>
 
           <S.Actions>
-            <S.NewProcessingButton onClick={() => navigate("/")}>
+            <S.NewProcessingButton onClick={startNewProcessing}>
               Новая обработка
             </S.NewProcessingButton>
           </S.Actions>
@@ -162,7 +183,11 @@ export const ProcessingMetricsPage = () => {
         </S.StatisticsCard>
 
         <S.Actions>
-          <S.NewProcessingButton onClick={() => navigate("/")}>
+          <S.ChangeSettingsButton onClick={goBackToWorkspace}>
+            Изменить настройки
+          </S.ChangeSettingsButton>
+
+          <S.NewProcessingButton onClick={startNewProcessing}>
             Новая обработка
           </S.NewProcessingButton>
         </S.Actions>

@@ -148,6 +148,60 @@ export const Status = styled.div<{
       success ? "rgba(87,217,141,0.3)" : "rgba(255,112,112,0.3)"};
 `;
 
+export const CardActions = styled.div`
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+`;
+
+export const DeleteButton = styled.button`
+  width: 42px;
+
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: rgba(255, 255, 255, 0.7);
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  svg {
+    width: 19px;
+
+    height: 19px;
+  }
+
+  &:hover {
+    background: rgba(220, 70, 70, 0.9);
+
+    border-color: rgba(220, 70, 70, 0.4);
+
+    color: white;
+
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
 export const InfoGrid = styled.div`
   display: grid;
 

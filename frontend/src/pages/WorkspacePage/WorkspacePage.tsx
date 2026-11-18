@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import TrashSVG from "@/assets/TrashSVG.svg?react";
 import settings from "../../../../backend/app/config/settings.json";
@@ -23,84 +23,42 @@ import {
   ModeSwitchContainer,
   ModeButton,
   ClearButton,
+  FeaturesHint,
 } from "./WorkspacePage.styles";
 import { uploadImage } from "@/api/image/uploadImage";
 import { ProcessingSettings } from "./widgets/ProcessingSettings";
 import { formatToAccept } from "./util/textFormatter";
 import { analyzeImage } from "@/api/image/analysisApi";
-import type { UploadResponse } from "@/api/types";
-
-type Mode = "original" | "processed" | "annotated";
-
-type ViewerState = {
-  original: UploadResponse | null;
-  processed: UploadResponse | null;
-  annotated: UploadResponse | null;
-};
+import {
+  createRunFingerprint,
+  useWorkspaceState,
+  type WorkspaceMode,
+  type WorkspaceState,
+} from "./workspaceStore";
 
 export function WorkspacePage() {
   const navigate = useNavigate();
   const { toolId } = useParams<{ toolId: string }>();
-  const [mode, setMode] = useState<Mode>("original");
+  const { state, update } = useWorkspaceState(toolId);
+
+  const { mode, viewerState, processingSettings, runId, runFingerprint } = state;
+
   const [isProcessing, setIsProcessing] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
 
-  const [viewerState, setViewerState] = useState<ViewerState>({
-    original: null,
-    processed: null,
-    annotated: null,
-  });
+  function setMode(nextMode: WorkspaceMode) {
+    update((prev) => ({ ...prev, mode: nextMode }));
+  }
 
-  const [processingSettings, setProcessingSettings] = useState({
-    preprocessing: {
-      denoise: settings.preprocessing.denoise,
-      normalize: settings.preprocessing.normalize,
-      contrastEnhancement: settings.preprocessing.contrast_enhancement,
-      smoothing: settings.preprocessing.smoothing,
-      filterSize: settings.preprocessing.filter_size,
-      preserveSize: settings.preprocessing.preserve_size,
-    },
-    segmentation: {
-      method: settings.segmentation.method,
-      outputMask: {
-        foregroundValue: settings.segmentation.output.foreground_value,
-        backgroundValue: settings.segmentation.output.background_value,
-        preserveSize: settings.segmentation.output.preserve_size,
-      },
-      threshold: {
-        thresholdValue: settings.segmentation.threshold.threshold_value,
-        invert: settings.segmentation.threshold.invert,
-      },
-      neural: {
-        modelType: settings.segmentation.neural.selected_model,
-        entities: settings.segmentation.neural.entities,
-        defaultConfidenceThreshold:
-          settings.segmentation.neural.default_confidence_threshold,
-        device: settings.segmentation.neural.device,
-      },
-    },
-    separation: {
-      enabled: settings.pore_separation.enabled,
-      applyOnlyToCandidates: settings.pore_separation.apply_only_to_candidates,
-      preserveAutonomousPores:
-        settings.pore_separation.preserve_autonomous_pores,
-      keepUnseparatedCandidates:
-        settings.pore_separation.keep_unseparated_candidates,
-      validateSeparationResult:
-        settings.pore_separation.validate_separation_result,
-      preserveParentLink: settings.pore_separation.preserve_parent_link,
-      evaluateSeparationQuality:
-        settings.pore_separation.evaluate_separation_quality,
-      qualityMetrics: {
-        coveredArea: settings.pore_separation.quality_metrics.covered_area,
-        lostArea: settings.pore_separation.quality_metrics.lost_area,
-        extraArea: settings.pore_separation.quality_metrics.extra_area,
-        coverageRatio: settings.pore_separation.quality_metrics.coverage_ratio,
-        extraRatio: settings.pore_separation.quality_metrics.extra_ratio,
-      },
-      algorithmParams: settings.pore_separation.algorithm_params,
-    },
-  });
+  function setProcessingSettings(
+    updater: (
+      previous: WorkspaceState["processingSettings"],
+    ) => WorkspaceState["processingSettings"],
+  ) {
+    update((prev) => ({
+      ...prev,
+      processingSettings: updater(prev.processingSettings),
+    }));
+  }
 
   const hasImage = Boolean(viewerState.original || viewerState.processed);
 
@@ -124,61 +82,90 @@ export function WorkspacePage() {
 
     const result = await uploadImage(file);
 
-    setViewerState({
-      original: {
-        preview_url: result.preview_url,
-        image_id: result.image_id,
-        width: result.width,
-        height: result.height,
+    // Новое изображение — прежний запуск больше не соответствует входным данным.
+    update((prev) => ({
+      ...prev,
+      mode: "original",
+      viewerState: {
+        original: {
+          preview_url: result.preview_url,
+          image_id: result.image_id,
+          width: result.width,
+          height: result.height,
+        },
+        processed: null,
+        annotated: null,
       },
-      processed: null,
-      annotated: null,
-    });
+      runId: null,
+      runFingerprint: null,
+    }));
   }
 
   const accept = formatToAccept(settings.image.allowed_formats);
 
   function clearImage() {
-    setViewerState({
-      original: null,
-      processed: null,
-      annotated: null,
-    });
-
-    setMode("original");
-    setRunId(null);
+    update((prev) => ({
+      ...prev,
+      mode: "original",
+      viewerState: {
+        original: null,
+        processed: null,
+        annotated: null,
+      },
+      runId: null,
+      runFingerprint: null,
+    }));
   }
 
+  const currentFingerprint = useMemo(
+    () =>
+      createRunFingerprint(
+        viewerState.original?.image_id ?? null,
+        processingSettings,
+      ),
+    [viewerState.original?.image_id, processingSettings],
+  );
+
+  // Настройки или изображение изменились после обработки — старый запуск
+  // больше не соответствует тому, что пользователь видит на экране.
+  const isRunOutdated = runId !== null && runFingerprint !== currentFingerprint;
+
   const handleProcess = async () => {
+    if (!viewerState.original) return;
+
+    const imageId = viewerState.original.image_id;
+    const fingerprint = createRunFingerprint(imageId, processingSettings);
+
     try {
       setIsProcessing(true);
-      if (!viewerState.original) return;
 
-      const result = await analyzeImage(viewerState.original.image_id, {
+      const result = await analyzeImage(imageId, {
         parametersId: crypto.randomUUID(),
         modelId: toolId || "default_model",
         ...processingSettings,
       });
 
-      setRunId(result.run_id);
-
-      setViewerState((prev) => ({
+      update((prev) => ({
         ...prev,
-        processed: {
-          preview_url: result.postprocessed_mask,
-          image_id: result.image_id,
-          width: result.width,
-          height: result.height,
-        },
-        annotated: {
-          preview_url: result.detection_overlay,
-          image_id: result.image_id,
-          width: result.width,
-          height: result.height,
+        runId: result.run_id,
+        runFingerprint: fingerprint,
+        mode: "processed",
+        viewerState: {
+          ...prev.viewerState,
+          processed: {
+            preview_url: result.postprocessed_mask,
+            image_id: result.image_id,
+            width: result.width,
+            height: result.height,
+          },
+          annotated: {
+            preview_url: result.detection_overlay,
+            image_id: result.image_id,
+            width: result.width,
+            height: result.height,
+          },
         },
       }));
-
-      setMode("processed");
     } catch (e) {
       console.error(e);
       alert("Ошибка при обработке изображения. Проверьте консоль.");
@@ -216,13 +203,20 @@ export function WorkspacePage() {
 
             <FeaturesButton
               onClick={() => {
-                if (!runId) return;
+                if (!runId || isRunOutdated) return;
                 navigate(`/metrics/${runId}`);
               }}
-              disabled={!runId}
+              disabled={!runId || isRunOutdated || isProcessing}
             >
               Вычислить характеристики
             </FeaturesButton>
+
+            {isRunOutdated && (
+              <FeaturesHint>
+                Настройки или изображение изменились — выполните обработку
+                заново
+              </FeaturesHint>
+            )}
           </ActionArea>
         </LeftPanel>
 

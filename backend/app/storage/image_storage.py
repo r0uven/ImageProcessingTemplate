@@ -305,6 +305,44 @@ class ImageStorage:
         self._check_name(name, "name")
         return self.analysis_dir / run_id / f"{name}.png"
 
+    def delete_analysis_images(self, run_id: str) -> int:
+        """Удаляет изображения запуска вместе с его поддиректорией.
+
+        Returns:
+            Количество удалённых файлов.
+        """
+        self._check_name(run_id, "run_id")
+        run_dir = self.analysis_dir / run_id
+
+        if not run_dir.is_dir():
+            return 0
+
+        removed = 0
+
+        with self._lock:
+            for path in run_dir.iterdir():
+                if not path.is_file():
+                    continue
+
+                self._analysis_cache.pop(path.resolve(), None)
+
+                try:
+                    path.unlink()
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    logger.warning("Failed to remove analysis image: %s", path)
+                    continue
+
+                removed += 1
+
+        try:
+            run_dir.rmdir()
+        except OSError:
+            logger.warning("Failed to remove analysis run directory: %s", run_dir)
+
+        return removed
+
     # ------------------------------------------------------------------
     # Очистка кэша (оригиналы и "красивые" превью)
     # ------------------------------------------------------------------

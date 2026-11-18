@@ -298,6 +298,16 @@ export const FeaturesButton = styled.button`
   }
 `;
 
+export const FeaturesHint = styled.div`
+  font-size: 13px;
+
+  line-height: 1.4;
+
+  color: rgba(255, 255, 255, 0.5);
+
+  text-align: center;
+`;
+
 export const ModeSwitchContainer = styled.div`
   display: flex;
 

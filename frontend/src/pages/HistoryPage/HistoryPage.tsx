@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import * as S from "./HistoryPage.styled.tsx";
 import { compareAsc, compareDesc, parse } from "date-fns";
 import { getHistory } from "@/api/history/getHistory";
+import { deleteHistoryItem } from "@/api/history/deleteHistoryItem";
+import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
+import TrashSVG from "@/assets/TrashSVG.svg?react";
 
 interface ProcessingHistoryItem {
   id: string;
@@ -35,6 +38,11 @@ export const HistoryPage = () => {
   const [sort, setSort] = useState("");
 
   const [filter, setFilter] = useState<"ALL" | "SUCCESS" | "FAILED">("ALL");
+
+  const [pendingDelete, setPendingDelete] =
+    useState<ProcessingHistoryItem | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const parseHistoryDate = (date: string) =>
     parse(date, "dd.MM.yyyy HH:mm", new Date());
@@ -110,6 +118,26 @@ export const HistoryPage = () => {
       cancelled = true;
     };
   }, []);
+
+  async function handleDelete() {
+    if (!pendingDelete) return;
+
+    const runId = pendingDelete.id;
+
+    try {
+      setIsDeleting(true);
+
+      await deleteHistoryItem(runId);
+
+      setHistory((prev) => prev.filter((item) => item.id !== runId));
+      setPendingDelete(null);
+    } catch (error) {
+      console.error("Ошибка удаления записи истории:", error);
+      alert("Не удалось удалить запись. Проверьте консоль.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -201,9 +229,20 @@ export const HistoryPage = () => {
                 <S.CardHeader>
                   <S.FileName>{item.filename}</S.FileName>
 
-                  <S.Status success={item.status === "SUCCESS"}>
-                    {item.status === "SUCCESS" ? "Успешно" : "Ошибка"}
-                  </S.Status>
+                  <S.CardActions>
+                    <S.Status success={item.status === "SUCCESS"}>
+                      {item.status === "SUCCESS" ? "Успешно" : "Ошибка"}
+                    </S.Status>
+
+                    <S.DeleteButton
+                      type="button"
+                      title="Удалить запись"
+                      aria-label={`Удалить запись ${item.filename}`}
+                      onClick={() => setPendingDelete(item)}
+                    >
+                      <TrashSVG />
+                    </S.DeleteButton>
+                  </S.CardActions>
                 </S.CardHeader>
 
                 <S.InfoGrid>
@@ -240,6 +279,20 @@ export const HistoryPage = () => {
           ))}
         </S.CardsContainer>
       </S.Content>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Удалить запись?"
+        message={`Запись «${pendingDelete?.filename ?? ""}» и все её результаты будут удалены безвозвратно.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        loadingText="Удаление..."
+        loading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+      />
     </S.Page>
   );
 };

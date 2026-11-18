@@ -666,6 +666,24 @@ def get_history(
     return history
 
 
+@app.delete("/history/{run_id}", status_code=204)
+def delete_history_entry(
+    run_id: str,
+    storage: StorageDep,
+    analysis_repository: AnalysisRepositoryDep,
+) -> None:
+    """Удаляет запуск анализа из истории вместе с его результатами и файлами."""
+    if not analysis_repository.delete_run(run_id):
+        raise HTTPException(status_code=404, detail="History entry not found")
+
+    try:
+        storage.delete_analysis_images(run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="History entry not found") from exc
+
+    logger.info("Analysis run deleted: run_id=%s", run_id)
+
+
 def _describe(values: list[float]) -> dict[str, float]:
     """Считает статистику по списку значений; для пустого списка возвращает нули."""
     if not values:
