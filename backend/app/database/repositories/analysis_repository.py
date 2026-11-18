@@ -1,6 +1,6 @@
 import json
-import time
 
+from app.database.models import AnalysisRunModel
 from app.database.repositories.processing_parameters_repository import (
     ProcessingParametersRepository,
 )
@@ -46,10 +46,7 @@ class AnalysisRepository:
 
     def create_run(
         self,
-        run_id: str,
-        image_id: str,
-        model_id: str,
-        analysis_result_id: str,
+        run: AnalysisRunModel,
         parameters: AnalyzeRequest,
     ) -> None:
         processing_parameters = to_processing_parameters(parameters)
@@ -70,12 +67,12 @@ class AnalysisRepository:
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
-                run_id,
-                image_id,
-                model_id,
-                parameters.parametersId,
-                analysis_result_id,
-                int(time.time()),
+                run.run_id,
+                run.image_id,
+                run.model_id,
+                run.params_id,
+                run.analysis_result_id,
+                run.created_at,
             ),
         )
 

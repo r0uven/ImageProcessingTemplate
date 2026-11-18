@@ -1,6 +1,7 @@
 import json
 import logging
 import statistics
+import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -13,7 +14,7 @@ import cv2
 import numpy as np
 from app.database.connection import get_connection
 from app.database.migrator import run_migrations
-from app.database.models import ImageModel
+from app.database.models import AnalysisRunModel, ImageModel
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.image_repository import ImageRepository
 from app.database.repositories.tool_repository import ToolRepository
@@ -31,11 +32,24 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
+logging.basicConfig(
+    filename="app.log",  # Имя файла (появится в папке с проектом)
+    level=logging.INFO,  # Записывать INFO и выше
+    encoding="utf-8",  # Чтобы русский текст не превратился в кракозябры
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 DEFAULT_STORAGE_DIR = "data/images"
 
 AnalysisImageType = Literal["preprocessed", "segmentation", "postprocessed", "overlay"]
+
+ANALYSIS_IMAGE_NAMES: tuple[AnalysisImageType, ...] = (
+    "preprocessed",
+    "segmentation",
+    "postprocessed",
+    "overlay",
+)
 
 
 # ============================================================
@@ -196,6 +210,49 @@ def _upload_response(image_id: str, preview: Image.Image) -> dict:
     }
 
 
+def _analysis_images_exist(storage: ImageStorage, run_id: str) -> bool:
+    """Проверяет, что все результирующие картинки запуска есть на диске."""
+    return all(
+        storage.analysis_image_path(run_id, name).is_file()
+        for name in ANALYSIS_IMAGE_NAMES
+    )
+
+
+def _find_cached_run(
+    run_id: str,
+    storage: ImageStorage,
+    analysis_repository: AnalysisRepository,
+) -> tuple | None:
+    """Возвращает сохранённый запуск, если результат и картинки уже готовы."""
+    result = analysis_repository.get_analysis_result(run_id)
+    if result is None or not _analysis_images_exist(storage, run_id):
+        return None
+    return result
+
+
+def _analysis_response(
+    run_id: str,
+    image_id: str,
+    width: int,
+    height: int,
+    detected_objects: int,
+) -> dict:
+    """Формирует ответ как для нового запуска, так и для кэшированного."""
+    images_url = f"/analysis/{run_id}/images"
+    return {
+        "status": "success",
+        "run_id": run_id,
+        "image_id": image_id,
+        "width": width,
+        "height": height,
+        "detected_objects": detected_objects,
+        "preprocessed_image": f"{images_url}/preprocessed",
+        "segmentation_mask": f"{images_url}/segmentation",
+        "postprocessed_mask": f"{images_url}/postprocessed",
+        "detection_overlay": f"{images_url}/overlay",
+    }
+
+
 def _restore_original(
     existing: ImageModel,
     image_bytes: bytes,
@@ -325,6 +382,25 @@ def analyze_image(
     if record is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
+    # Хеш считается только по входным данным: он одновременно является ID
+    # запуска, именем подпапки и ключом кэша готовой обработки.
+    run_id = compute_run_hash(
+        image_id=image_id,
+        model_id=parameters.modelId,
+        parameters=parameters,
+    )
+
+    cached_run = _find_cached_run(run_id, storage, analysis_repository)
+    if cached_run is not None:
+        logger.info("Analysis cache hit: image_id=%s run_id=%s", image_id, run_id)
+        return _analysis_response(
+            run_id=run_id,
+            image_id=image_id,
+            width=record.width,
+            height=record.height,
+            detected_objects=cached_run[6],
+        )
+
     image = storage.get_original(record.file_path)
     if image is None:
         raise HTTPException(status_code=404, detail="Image file not found")
@@ -360,16 +436,6 @@ def analyze_image(
         "overlay": _require_pil(overlay, "overlay"),
     }
 
-    # Хеш всего запуска одновременно является его ID и именем подпапки с картинками.
-    # Абсолютно одинаковые обработки дают одинаковый хеш и не сохраняются повторно.
-    run_id = compute_run_hash(
-        image_id=image_id,
-        model_id=parameters.modelId,
-        parameters=parameters,
-        analysis_result=analysis,
-        images=analysis_images,
-    )
-
     analysis.run_id = run_id
 
     if analysis_repository.get_run(run_id) is None:
@@ -385,10 +451,14 @@ def analyze_image(
             size_distribution=analysis.size_distribution,
         )
         analysis_repository.create_run(
-            run_id=run_id,
-            image_id=image_id,
-            model_id=parameters.modelId,
-            analysis_result_id=analysis_result_id,
+            run=AnalysisRunModel(
+                run_id=run_id,
+                image_id=image_id,
+                model_id=parameters.modelId,
+                params_id=parameters.parametersId,
+                analysis_result_id=analysis_result_id,
+                created_at=int(time.time()),
+            ),
             parameters=parameters,
         )
     else:
@@ -407,19 +477,13 @@ def analyze_image(
         analysis.pore_count,
     )
 
-    images_url = f"/analysis/{run_id}/images"
-    return {
-        "status": "success",
-        "run_id": run_id,
-        "image_id": image_id,
-        "width": width,
-        "height": height,
-        "detected_objects": analysis.pore_count,
-        "preprocessed_image": f"{images_url}/preprocessed",
-        "segmentation_mask": f"{images_url}/segmentation",
-        "postprocessed_mask": f"{images_url}/postprocessed",
-        "detection_overlay": f"{images_url}/overlay",
-    }
+    return _analysis_response(
+        run_id=run_id,
+        image_id=image_id,
+        width=width,
+        height=height,
+        detected_objects=analysis.pore_count,
+    )
 
 
 # ============================================================

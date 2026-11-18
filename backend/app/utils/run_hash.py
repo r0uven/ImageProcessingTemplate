@@ -2,19 +2,14 @@
 
 import hashlib
 import json
-from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
-import numpy as np
-from PIL import Image
-
-from app.entities.analysis_result import AnalysisResult
 from app.schemas.analyze_request import AnalyzeRequest
 
-# Версия схемы хеширования. Меняется при изменении состава факторов,
-# чтобы старые и новые хеши не пересекались.
-HASH_VERSION = 1
+# Версия схемы хеширования. Меняется при изменении состава факторов
+# или логики обработки, чтобы старые и новые хеши не пересекались.
+HASH_VERSION = 2
 
 
 def _serialize_parameters(parameters: AnalyzeRequest) -> dict[str, Any]:
@@ -37,67 +32,38 @@ def _serialize_parameters(parameters: AnalyzeRequest) -> dict[str, Any]:
     return serialized
 
 
-def _hash_image(image: np.ndarray | Image.Image) -> str:
-    """Вычисляет SHA-256 хеш пиксельных данных изображения.
-
-    В хеш входят тип данных, размер и сами пиксели, поэтому любые изменения
-    результирующей картинки меняют итоговый хеш запуска.
-    """
-    if isinstance(image, Image.Image):
-        header = f"PIL:{image.mode}:{image.width}x{image.height}:".encode()
-        payload = header + image.tobytes()
-    else:
-        array = np.ascontiguousarray(image)
-        header = f"NDARRAY:{array.dtype.str}:{array.shape}:".encode()
-        payload = header + array.tobytes()
-
-    return hashlib.sha256(payload).hexdigest()
-
-
 def compute_run_hash(
     image_id: str,
     model_id: str,
     parameters: AnalyzeRequest,
-    analysis_result: AnalysisResult,
-    images: Mapping[str, np.ndarray | Image.Image] | None = None,
 ) -> str:
     """
-    Вычисляет детерминированный SHA-256 хеш для запуска анализа.
+    Вычисляет детерминированный SHA-256 хеш запуска по входным данным.
 
-    Хеш зависит от всего, что влияет на результат или связано с ним:
-    - ID исходного изображения (image_id)
-    - ID используемой модели (model_id)
-    - Параметров обработки (все параметры из AnalyzeRequest)
-    - Результатов анализа (характеристики, найденные объекты)
-    - Результирующих изображений (препроцессинг, маска, overlay и т.д.)
+    Хеш используется как идентификатор запуска, имя подпапки с картинками
+    и ключ кэша. Поэтому он зависит только от того, что влияет на обработку:
+    - ID исходного изображения (image_id);
+    - ID используемой модели (model_id);
+    - параметров обработки (все параметры из AnalyzeRequest).
+
+    Результаты обработки (характеристики, маски, overlay) намеренно не входят
+    в хеш: при неизменных входных данных они не меняются, а для проверки кэша
+    их вычисление не требуется.
 
     Args:
         image_id: Идентификатор исходного изображения
         model_id: Идентификатор используемой модели
         parameters: Параметры обработки изображения
-        analysis_result: Результаты анализа (pore_count, porosity, etc.)
-        images: Результирующие изображения запуска (имя -> изображение)
 
     Returns:
         SHA-256 хеш в hex-формате (64 символа)
     """
-    # Собираем все факторы в один объект для хеширования
+    # Собираем все входные факторы в один объект для хеширования
     hash_factors = {
         "hash_version": HASH_VERSION,
         "image_id": image_id,
         "model_id": model_id,
         "parameters": _serialize_parameters(parameters),
-        "analysis_result": {
-            "pore_count": analysis_result.pore_count,
-            # Округляем для стабильности сериализации
-            "porosity": round(analysis_result.porosity, 6),
-            "area": round(analysis_result.area, 6),
-            "diameter": round(analysis_result.diameter, 6),
-            "size_distribution": analysis_result.size_distribution,
-        },
-        "images": {
-            name: _hash_image(image) for name, image in sorted((images or {}).items())
-        },
     }
 
     # Сериализуем в JSON с сортировкой ключей для консистентности

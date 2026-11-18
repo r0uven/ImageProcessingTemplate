@@ -2,5 +2,5 @@ import axios from "axios";
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001",
-  timeout: 30_000,
+  timeout: 600_000,
 });

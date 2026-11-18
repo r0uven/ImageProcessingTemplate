@@ -13,6 +13,7 @@ class ImageModel:
     content_hash: str | None = None
 
 
+@dataclass
 class AnalysisRunModel:
     run_id: str
     image_id: str
