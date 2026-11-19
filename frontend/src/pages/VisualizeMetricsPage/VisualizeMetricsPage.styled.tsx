@@ -224,6 +224,46 @@ export const Actions = styled.div`
   display: flex;
 
   justify-content: flex-end;
+
+  align-items: center;
+
+  gap: 12px;
+
+  flex-wrap: wrap;
+`;
+
+export const ChangeSettingsButton = styled.button`
+  height: 54px;
+
+  padding: 0 26px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+
+    border-color: rgba(255, 255, 255, 0.18);
+
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 export const NewProcessingButton = styled.button`

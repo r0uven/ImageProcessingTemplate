@@ -1,10 +1,11 @@
+import asyncio
 import json
 import logging
 import statistics
 import time
 import uuid
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
@@ -25,9 +26,20 @@ from app.modules.visualisation.overlay_renderer import OverlayRenderer
 from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
+from app.schemas.upload_request import UploadPathRequest
 from app.storage.image_storage import ImageStorage
+from app.utils.pretty_image import make_pretty_image_plot
 from app.utils.run_hash import compute_run_hash
-from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -41,6 +53,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_STORAGE_DIR = "data/images"
+
+# Заголовок-подтверждение, который обязан прислать клиент при удалении модели.
+# Браузерный запрос из адресной строки или простая HTML-форма такой заголовок
+# задать не могут, поэтому случайное удаление через прямой запрос невозможно.
+DELETE_CONFIRMATION_HEADER = "X-Confirm-Delete"
 
 AnalysisImageType = Literal["preprocessed", "segmentation", "postprocessed", "overlay"]
 
@@ -99,10 +116,22 @@ ToolRepositoryDep = Annotated[ToolRepository, Depends(get_tool_repository)]
 # ============================================================
 
 
+async def _cleanup_cache_periodically(storage: ImageStorage) -> None:
+    """Постепенно удаляет самые старые оригиналы и превью, пока приложение работает."""
+    while True:
+        try:
+            await run_in_threadpool(storage.cleanup_cache)
+        except Exception:
+            logger.exception("Cache cleanup failed")
+
+        await asyncio.sleep(storage.cleanup_interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Поднимает БД, миграции и сервисы; закрывает соединение при остановке."""
     db = get_connection()
+    cleanup_task: asyncio.Task | None = None
 
     try:
         run_migrations(db)
@@ -118,9 +147,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.analysis_pipeline = AnalysisPipeline()
         app.state.overlay_renderer = OverlayRenderer()
 
+        cleanup_task = asyncio.create_task(
+            _cleanup_cache_periodically(app.state.storage)
+        )
+
         logger.info("Application started")
         yield
     finally:
+        if cleanup_task is not None:
+            cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup_task
+
         db.close()
         logger.info("Application stopped")
 
@@ -185,6 +223,16 @@ def _to_pil(image: np.ndarray | Image.Image) -> Image.Image:
     elif image.ndim == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)
+
+
+def _pretty_mask(image: np.ndarray | None, name: str) -> Image.Image:
+    """Рендерит маску в такой же удобный вид, как превью загруженного изображения."""
+    if image is None:
+        raise ValueError(f"Изображение '{name}' отсутствует в результате анализа")
+
+    mask = image.astype(np.uint8) * 255 if image.dtype == bool else image
+
+    return make_pretty_image_plot(mask, cmap="gray")
 
 
 def _png_response(image: Image.Image) -> Response:
@@ -258,37 +306,118 @@ def _restore_original(
     image_bytes: bytes,
     suffix: str,
     storage: ImageStorage,
-    image_repository: ImageRepository,
 ) -> Path:
-    """Записывает оригинал заново и обновляет путь в БД, если он изменился."""
+    """Записывает оригинал из переданных байтов заново."""
     logger.warning("Original file missing, restoring: image_id=%s", existing.image_id)
 
     try:
-        new_path = storage.save_original(existing.image_id, image_bytes, suffix)
+        return storage.save_original(existing.image_id, image_bytes, suffix)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Unsupported file type") from exc
 
-    if str(new_path) != existing.file_path:
-        image_repository.update_file_path(existing.image_id, str(new_path))
 
-    return new_path
+def _restore_original_from_path(
+    existing: ImageModel,
+    source_path: Path,
+    suffix: str,
+    storage: ImageStorage,
+) -> Path:
+    """Копирует оригинал из файловой системы заново."""
+    logger.warning("Original file missing, restoring: image_id=%s", existing.image_id)
+
+    try:
+        return storage.copy_original(existing.image_id, source_path, suffix)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Unsupported file type") from exc
+    except OSError as exc:
+        raise HTTPException(
+            status_code=500, detail="Failed to copy source image"
+        ) from exc
 
 
 def _reuse_existing_image(
     existing: ImageModel,
-    image_bytes: bytes,
-    suffix: str,
+    original_image_name: str,
     preview: Image.Image,
     storage: ImageStorage,
     image_repository: ImageRepository,
+    restore_original: Callable[[], Path],
 ) -> dict:
     """Возвращает уже загруженное изображение, восстанавливая оригинал при необходимости."""
     if not Path(existing.file_path).is_file():
-        _restore_original(existing, image_bytes, suffix, storage, image_repository)
+        new_path = restore_original()
+        if str(new_path) != existing.file_path:
+            image_repository.update_file_path(existing.image_id, str(new_path))
+
+    if existing.original_image_name != original_image_name:
+        image_repository.update_original_image_name(
+            existing.image_id, original_image_name
+        )
 
     storage.save_preview(existing.image_id, preview)
     logger.info("Image already exists: image_id=%s", existing.image_id)
     return _upload_response(existing.image_id, preview)
+
+
+async def _reuse_existing_image_from_path(
+    existing: ImageModel,
+    source_path: Path,
+    suffix: str,
+    original_image_name: str,
+    storage: ImageStorage,
+    image_repository: ImageRepository,
+    loader: ImageLoader,
+) -> dict:
+    """Возвращает уже загруженное изображение, не декодируя дубликат без нужды."""
+    if not Path(existing.file_path).is_file():
+        new_path = await run_in_threadpool(
+            _restore_original_from_path, existing, source_path, suffix, storage
+        )
+        if str(new_path) != existing.file_path:
+            image_repository.update_file_path(existing.image_id, str(new_path))
+
+    if existing.original_image_name != original_image_name:
+        image_repository.update_original_image_name(
+            existing.image_id, original_image_name
+        )
+
+    preview = await run_in_threadpool(
+        storage.get_preview, storage.preview_path(existing.image_id)
+    )
+    if preview is None:
+        _, preview = await run_in_threadpool(
+            loader.load_image_from_path, existing.file_path
+        )
+        await run_in_threadpool(storage.save_preview, existing.image_id, preview)
+
+    logger.info("Image already exists: image_id=%s", existing.image_id)
+    return _upload_response(existing.image_id, preview)
+
+
+def _source_image_path(raw_path: str) -> Path:
+    """Проверяет путь, полученный из файлового менеджера на компьютере."""
+    if not raw_path or not raw_path.strip():
+        raise HTTPException(status_code=400, detail="File path is required")
+
+    try:
+        path = Path(raw_path.strip()).expanduser()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid file path") from exc
+
+    if not path.is_absolute():
+        raise HTTPException(status_code=400, detail="Absolute file path is required")
+
+    try:
+        is_file = path.is_file()
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="Invalid file path") from exc
+
+    if not is_file:
+        raise HTTPException(status_code=404, detail="Source image not found")
+
+    return path
 
 
 # ============================================================
@@ -325,11 +454,11 @@ async def upload_image(
     if existing is not None:
         return _reuse_existing_image(
             existing,
-            image_bytes,
-            suffix,
+            file.filename,
             preview_image,
             storage,
             image_repository,
+            lambda: _restore_original(existing, image_bytes, suffix, storage),
         )
 
     image_id = str(uuid.uuid4())
@@ -350,6 +479,7 @@ async def upload_image(
                 height=int(original_image.shape[0]),
                 scale_value=1.0,
                 content_hash=content_hash,
+                original_image_name=file.filename,
             )
         )
     except Exception as exc:
@@ -359,6 +489,100 @@ async def upload_image(
         raise HTTPException(status_code=500, detail="Failed to store image") from exc
 
     logger.info("Image uploaded: image_id=%s filename=%s", image_id, file.filename)
+    return _upload_response(image_id, preview_image)
+
+
+@app.post("/upload/path")
+async def upload_image_from_path(
+    request: UploadPathRequest,
+    storage: StorageDep,
+    loader: LoaderDep,
+    image_repository: ImageRepositoryDep,
+) -> dict:
+    """Копирует изображение с локального диска во внутреннее хранилище.
+
+    Фронтенд передаёт только путь к файлу, поэтому байты большого изображения
+    не проходят через HTTP. Копия делается потоково, без загрузки файла в память.
+    """
+    source_path = _source_image_path(request.path)
+    filename = source_path.name
+    suffix = source_path.suffix or ".png"
+
+    # Сначала считаем хэш исходного файла и проверяем кэш. Копирование
+    # в originals выполняется только для действительно нового изображения.
+    try:
+        content_hash = await run_in_threadpool(
+            storage.compute_file_hash, source_path
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except OSError as exc:
+        logger.exception("Failed to read image: %s", source_path)
+        raise HTTPException(
+            status_code=500, detail="Failed to read source image"
+        ) from exc
+
+    existing = image_repository.get_by_hash(content_hash)
+    if existing is not None:
+        return await _reuse_existing_image_from_path(
+            existing,
+            source_path,
+            suffix,
+            filename,
+            storage,
+            image_repository,
+            loader,
+        )
+
+    image_id = str(uuid.uuid4())
+
+    try:
+        file_path = await run_in_threadpool(
+            storage.copy_original, image_id, source_path, suffix
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Unsupported file type") from exc
+    except OSError as exc:
+        logger.exception("Failed to copy image: %s", source_path)
+        raise HTTPException(
+            status_code=500, detail="Failed to copy source image"
+        ) from exc
+
+    try:
+        original_image, preview_image = await run_in_threadpool(
+            loader.load_image_from_path, file_path
+        )
+    except Exception as exc:
+        logger.exception("Failed to load image: %s", source_path)
+        _remove_files(file_path)
+        raise HTTPException(status_code=400, detail="Invalid image file") from exc
+
+    try:
+        storage.save_preview(image_id, preview_image)
+        image_repository.create(
+            ImageModel(
+                image_id=image_id,
+                file_path=str(file_path),
+                width=int(original_image.shape[1]),
+                height=int(original_image.shape[0]),
+                scale_value=1.0,
+                content_hash=content_hash,
+                original_image_name=filename,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Failed to persist image: %s", source_path)
+        _remove_files(file_path, storage.preview_path(image_id))
+        raise HTTPException(status_code=500, detail="Failed to store image") from exc
+
+    logger.info(
+        "Image imported from path: image_id=%s filename=%s source=%s",
+        image_id,
+        filename,
+        source_path,
+    )
     return _upload_response(image_id, preview_image)
 
 
@@ -430,7 +654,7 @@ def analyze_image(
         "segmentation": _require_pil(
             result.image_data.segmentation_mask, "segmentation"
         ),
-        "postprocessed": _require_pil(
+        "postprocessed": _pretty_mask(
             result.image_data.postprocessed_mask, "postprocessed"
         ),
         "overlay": _require_pil(overlay, "overlay"),
@@ -562,7 +786,33 @@ def get_tools(tool_repository: ToolRepositoryDep):
 
 
 @app.delete("/tools/{model_id}", status_code=204)
-def delete_tool(model_id: str, tool_repository: ToolRepositoryDep) -> None:
+def delete_tool(
+    model_id: str,
+    tool_repository: ToolRepositoryDep,
+    confirmation: Annotated[
+        str | None, Header(alias=DELETE_CONFIRMATION_HEADER)
+    ] = None,
+) -> None:
+    """Удаляет модель только при явном подтверждении и если она removable."""
+    if confirmation != model_id:
+        raise HTTPException(
+            status_code=428,
+            detail=(
+                "Deletion must be confirmed: "
+                f"pass header {DELETE_CONFIRMATION_HEADER}: {model_id}"
+            ),
+        )
+
+    tool = tool_repository.get_by_id(model_id)
+    if tool is None:
+        raise HTTPException(status_code=404, detail="Tool not found")
+
+    if not tool.removable:
+        raise HTTPException(
+            status_code=403,
+            detail="Tool is protected from deletion",
+        )
+
     try:
         deleted = tool_repository.delete(model_id)
     except Exception as exc:
@@ -573,7 +823,7 @@ def delete_tool(model_id: str, tool_repository: ToolRepositoryDep) -> None:
         ) from exc
 
     if not deleted:
-        raise HTTPException(status_code=404, detail="Tool not found or not removable")
+        raise HTTPException(status_code=409, detail="Tool cannot be deleted")
 
 
 # ============================================================
@@ -599,6 +849,7 @@ def get_history(
             width,
             height,
             _pore_count,
+            original_image_name,
         ) = run
 
         model = tool_repository.get_by_id(model_id)
@@ -608,7 +859,7 @@ def get_history(
             {
                 "run_id": run_id,
                 "image_id": image_id,
-                "filename": Path(file_path).name,
+                "filename": original_image_name or Path(file_path).name,
                 "modelName": model_name,
                 "createdAt": datetime.fromtimestamp(created_at, tz=UTC).strftime(
                     "%d.%m.%Y %H:%M"
@@ -622,6 +873,24 @@ def get_history(
         )
 
     return history
+
+
+@app.delete("/history/{run_id}", status_code=204)
+def delete_history_entry(
+    run_id: str,
+    storage: StorageDep,
+    analysis_repository: AnalysisRepositoryDep,
+) -> None:
+    """Удаляет запуск анализа из истории вместе с его результатами и файлами."""
+    if not analysis_repository.delete_run(run_id):
+        raise HTTPException(status_code=404, detail="History entry not found")
+
+    try:
+        storage.delete_analysis_images(run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="History entry not found") from exc
+
+    logger.info("Analysis run deleted: run_id=%s", run_id)
 
 
 def _describe(values: list[float]) -> dict[str, float]:

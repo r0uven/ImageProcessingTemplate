@@ -132,7 +132,7 @@ export const ClearButton = styled.button`
   }
 `;
 
-export const UploadOverlay = styled.label`
+export const UploadOverlay = styled.div`
   flex: 1;
 
   display: flex;
@@ -296,6 +296,16 @@ export const FeaturesButton = styled.button`
 
     cursor: not-allowed;
   }
+`;
+
+export const FeaturesHint = styled.div`
+  font-size: 13px;
+
+  line-height: 1.4;
+
+  color: rgba(255, 255, 255, 0.5);
+
+  text-align: center;
 `;
 
 export const ModeSwitchContainer = styled.div`

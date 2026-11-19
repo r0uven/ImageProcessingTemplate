@@ -3,8 +3,9 @@ import io
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from matplotlib import patches
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from PIL import Image
 
 
@@ -12,7 +13,7 @@ class OverlayRenderer:
     def render_detection_overlay(self, image, detected_objects):
         fig = plt.figure(figsize=(10, 10), dpi=150)
 
-        ax = plt.Axes(fig, [0, 0, 1, 1])
+        ax = Axes(fig, (0, 0, 1, 1))
         ax.set_axis_off()
         fig.add_axes(ax)
 

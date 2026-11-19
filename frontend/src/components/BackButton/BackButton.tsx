@@ -33,7 +33,7 @@ export const BackButton = () => {
     <BackButtonContainer onClick={handleBack}>
       <BackIcon>←</BackIcon>
 
-      <BackText>Back</BackText>
+      <BackText>Назад</BackText>
     </BackButtonContainer>
   );
 };

@@ -1,7 +1,10 @@
 import hashlib
+import logging
 import os
 import re
+import shutil
 import threading
+import time
 import uuid
 from collections import OrderedDict
 from collections.abc import Callable
@@ -12,7 +15,16 @@ import cv2
 import numpy as np
 from PIL import Image
 
+from app.config.config_loader import APP_SETTINGS
+
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CACHE_MAX_AGE_DAYS = 183
+DEFAULT_CACHE_MAX_TOTAL_BYTES = 10 * 1024**3
+DEFAULT_CLEANUP_INTERVAL_MINUTES = 30
+DEFAULT_CLEANUP_MAX_DELETIONS = 25
 
 # Регулярное выражение для проверки безопасных имен файлов/ID (предотвращает path traversal и некорректные символы)
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
@@ -55,6 +67,31 @@ class ImageStorage:
             threading.RLock()
         )  # Рекурсивный мьютекс для потокобезопасного доступа к кэшу
 
+        storage_settings = APP_SETTINGS.get("storage", {})
+        self.cache_max_age_seconds = (
+            int(storage_settings.get("cache_max_age_days", DEFAULT_CACHE_MAX_AGE_DAYS))
+            * 24
+            * 60
+            * 60
+        )
+        self.cache_max_total_bytes = int(
+            storage_settings.get("cache_max_total_bytes", DEFAULT_CACHE_MAX_TOTAL_BYTES)
+        )
+        self.cleanup_interval_seconds = (
+            int(
+                storage_settings.get(
+                    "cleanup_interval_minutes",
+                    DEFAULT_CLEANUP_INTERVAL_MINUTES,
+                )
+            )
+            * 60
+        )
+        self.cleanup_max_deletions_per_run = int(
+            storage_settings.get(
+                "cleanup_max_deletions_per_run", DEFAULT_CLEANUP_MAX_DELETIONS
+            )
+        )
+
         # LRU-кэши (OrderedDict) для разных типов изображений
         self._original_cache: OrderedDict[Path, np.ndarray] = OrderedDict()
         self._preview_cache: OrderedDict[Path, Image.Image] = OrderedDict()
@@ -80,20 +117,43 @@ class ImageStorage:
         return value
 
     @staticmethod
-    def _atomic_write(path: Path, writer: Callable[[Path], object]) -> None:
+    def _atomic_write(path: Path, writer: Callable[[Path], T]) -> T:
         """
         Выполняет атомарную запись файла.
         Данные сначала записываются во временный файл в той же директории,
         после чего атомарно заменяют целевой файл с помощью os.replace.
+        Возвращает результат writer, чтобы можно было получить, например, хэш.
         """
         tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
         try:
-            writer(tmp)
+            result = writer(tmp)
             os.replace(tmp, path)
+            return result
         except BaseException:
             # В случае ошибки удаляем временный файл, если он успел создаться
             tmp.unlink(missing_ok=True)
             raise
+
+    @staticmethod
+    def _normalize_suffix(suffix: str) -> str:
+        """Приводит расширение к виду '.png' и проверяет, что оно разрешено."""
+        suffix = suffix.lower()
+        if not suffix.startswith("."):
+            suffix = f".{suffix}"
+        if suffix not in _ALLOWED_SUFFIXES:
+            raise ValueError(f"Недопустимое расширение: {suffix!r}")
+        return suffix
+
+    @staticmethod
+    def compute_file_hash(file_path: str | Path) -> str:
+        """Считает SHA-256 файла потоково, не загружая его целиком в память."""
+        hasher = hashlib.sha256()
+
+        with Path(file_path).open("rb") as file:
+            for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                hasher.update(chunk)
+
+        return hasher.hexdigest()
 
     def _ensure_inside_base(self, file_path: str | Path) -> Path:
         """
@@ -162,14 +222,31 @@ class ImageStorage:
         """
         self._check_name(image_id, "image_id")
 
-        suffix = suffix.lower()
-        if not suffix.startswith("."):
-            suffix = f".{suffix}"
-        if suffix not in _ALLOWED_SUFFIXES:
-            raise ValueError(f"Недопустимое расширение: {suffix!r}")
+        suffix = self._normalize_suffix(suffix)
 
         path = self.original_dir / f"{image_id}{suffix}"
         self._atomic_write(path, lambda tmp: tmp.write_bytes(data))
+        self._invalidate(self._original_cache, path)
+
+        return path
+
+    def copy_original(
+        self,
+        image_id: str,
+        source_path: str | Path,
+        suffix: str,
+    ) -> Path:
+        """Копирует файл из файловой системы в ``originals`` без чтения в память."""
+        self._check_name(image_id, "image_id")
+
+        source = Path(source_path)
+        if not source.is_file():
+            raise FileNotFoundError(f"Файл не найден: {source}")
+
+        suffix = self._normalize_suffix(suffix)
+
+        path = self.original_dir / f"{image_id}{suffix}"
+        self._atomic_write(path, lambda tmp: shutil.copyfile(source, tmp))
         self._invalidate(self._original_cache, path)
 
         return path
@@ -268,3 +345,126 @@ class ImageStorage:
         self._check_name(run_id, "run_id")
         self._check_name(name, "name")
         return self.analysis_dir / run_id / f"{name}.png"
+
+    def delete_analysis_images(self, run_id: str) -> int:
+        """Удаляет изображения запуска вместе с его поддиректорией.
+
+        Returns:
+            Количество удалённых файлов.
+        """
+        self._check_name(run_id, "run_id")
+        run_dir = self.analysis_dir / run_id
+
+        if not run_dir.is_dir():
+            return 0
+
+        removed = 0
+
+        with self._lock:
+            for path in run_dir.iterdir():
+                if not path.is_file():
+                    continue
+
+                self._analysis_cache.pop(path.resolve(), None)
+
+                try:
+                    path.unlink()
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    logger.warning("Failed to remove analysis image: %s", path)
+                    continue
+
+                removed += 1
+
+        try:
+            run_dir.rmdir()
+        except OSError:
+            logger.warning("Failed to remove analysis run directory: %s", run_dir)
+
+        return removed
+
+    # ------------------------------------------------------------------
+    # Очистка кэша (оригиналы и "красивые" превью)
+    # ------------------------------------------------------------------
+
+    def _cache_files_oldest_first(self) -> list[tuple[float, Path, int]]:
+        """Собирает файлы originals и previews, сортируя их от старых к новым."""
+        files: list[tuple[float, Path, int]] = []
+
+        for directory in (self.original_dir, self.preview_dir):
+            try:
+                entries = directory.iterdir()
+            except OSError:
+                logger.warning("Failed to read cache directory: %s", directory)
+                continue
+
+            for path in entries:
+                try:
+                    if not path.is_file():
+                        continue
+                    stat = path.stat()
+                except OSError:
+                    continue
+
+                files.append((stat.st_mtime, path, stat.st_size))
+
+        files.sort(key=lambda item: item[0])
+        return files
+
+    def cleanup_cache(self) -> dict[str, int]:
+        """Удаляет устаревшие или лишние файлы кэша по одному, начиная с самых старых.
+
+        Файл удаляется, если он старше ``cache_max_age_days`` или если
+        суммарный размер originals + previews превышает ``cache_max_total_bytes``.
+        За один проход удаляется не более ``cleanup_max_deletions_per_run`` файлов,
+        чтобы очистка шла постепенно.
+        """
+        deadline = time.time() - self.cache_max_age_seconds
+        files = self._cache_files_oldest_first()
+        total_bytes = sum(size for _, _, size in files)
+
+        removed_files = 0
+        removed_bytes = 0
+
+        for mtime, path, size in files:
+            if removed_files >= self.cleanup_max_deletions_per_run:
+                break
+
+            is_expired = mtime < deadline
+            is_over_limit = total_bytes > self.cache_max_total_bytes
+
+            # Файлы отсортированы по mtime: если самый старый ещё не устарел
+            # и лимит не превышен, удалять дальше нечего.
+            if not is_expired and not is_over_limit:
+                break
+
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                logger.warning("Failed to remove cache file: %s", path)
+                continue
+
+            with self._lock:
+                self._original_cache.pop(path, None)
+                self._preview_cache.pop(path, None)
+
+            total_bytes -= size
+            removed_bytes += size
+            removed_files += 1
+
+        if removed_files:
+            logger.info(
+                "Cache cleanup removed %s files (%.2f MB), remaining: %.2f MB",
+                removed_files,
+                removed_bytes / (1024 * 1024),
+                total_bytes / (1024 * 1024),
+            )
+
+        return {
+            "removed_files": removed_files,
+            "removed_bytes": removed_bytes,
+            "remaining_bytes": total_bytes,
+        }

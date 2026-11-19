@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ToolCard } from "../../components/ToolCard/ToolCard";
+import { ConfirmDialog } from "../../components/ConfirmDialog/ConfirmDialog";
 
 import type { SegmentationModel } from "../../types/tool";
 
@@ -21,6 +22,12 @@ export function LandingPage() {
   const navigate = useNavigate();
 
   const [tools, setTools] = useState<SegmentationModel[]>([]);
+
+  const [pendingDelete, setPendingDelete] = useState<SegmentationModel | null>(
+    null,
+  );
+
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,12 +51,23 @@ export function LandingPage() {
     };
   }, []);
 
-  async function removeTool(id: string) {
+  async function handleDelete() {
+    if (!pendingDelete) return;
+
+    const id = pendingDelete.model_id;
+
     try {
+      setIsDeleting(true);
+
       await deleteTool(id);
+
       setTools((prev) => prev.filter((tool) => tool.model_id !== id));
+      setPendingDelete(null);
     } catch (error) {
       console.error("Ошибка удаления:", error);
+      alert("Не удалось удалить модель. Проверьте консоль.");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -77,7 +95,7 @@ export function LandingPage() {
                 navigate(`/workspace/${tool.model_id}`);
               }}
               onDelete={() => {
-                removeTool(tool.model_id);
+                setPendingDelete(tool);
               }}
             />
           ))}
@@ -90,6 +108,20 @@ export function LandingPage() {
 
         <BottomText>Выберите способ обработки</BottomText>
       </Content>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Удалить нейросеть?"
+        message={`Модель «${pendingDelete?.model_name ?? ""}» будет удалена безвозвратно.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        loadingText="Удаление..."
+        loading={isDeleting}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+      />
     </PageContainer>
   );
 }
