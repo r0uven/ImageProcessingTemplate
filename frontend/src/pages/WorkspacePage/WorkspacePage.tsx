@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { isTauri } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import TrashSVG from "@/assets/TrashSVG.svg?react";
 import settings from "../../../../backend/app/config/settings.json";
 
@@ -25,7 +27,11 @@ import {
   ClearButton,
   FeaturesHint,
 } from "./WorkspacePage.styles";
-import { uploadImage } from "@/api/image/uploadImage";
+import {
+  uploadImage,
+  uploadImageByPath,
+} from "@/api/image/uploadImage";
+import type { UploadResponse } from "@/api/types";
 import { ProcessingSettings } from "./widgets/ProcessingSettings";
 import { formatToAccept } from "./util/textFormatter";
 import { analyzeImage } from "@/api/image/analysisApi";
@@ -44,6 +50,8 @@ export function WorkspacePage() {
   const { mode, viewerState, processingSettings, runId, runFingerprint } = state;
 
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function setMode(nextMode: WorkspaceMode) {
     update((prev) => ({ ...prev, mode: nextMode }));
@@ -76,12 +84,7 @@ export function WorkspacePage() {
     }));
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const result = await uploadImage(file);
-
+  function applyUploadedImage(result: UploadResponse) {
     // Новое изображение — прежний запуск больше не соответствует входным данным.
     update((prev) => ({
       ...prev,
@@ -99,6 +102,52 @@ export function WorkspacePage() {
       runId: null,
       runFingerprint: null,
     }));
+  }
+
+  async function handleUpload() {
+    // В браузере нативный диалог Tauri недоступен — оставляем обычный выбор файла.
+    if (!isTauri()) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        filters: [
+          {
+            name: "Изображения",
+            extensions: settings.image.allowed_formats,
+          },
+        ],
+      });
+
+      if (typeof selected !== "string") return;
+
+      const result = await uploadImageByPath(selected);
+      applyUploadedImage(result);
+    } catch (error) {
+      console.error("Ошибка загрузки изображения:", error);
+      alert("Не удалось загрузить изображение. Проверьте консоль.");
+    }
+  }
+
+  async function handleFileInputChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await uploadImage(file);
+      applyUploadedImage(result);
+    } catch (error) {
+      console.error("Ошибка загрузки изображения:", error);
+      alert("Не удалось загрузить изображение. Проверьте консоль.");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   const accept = formatToAccept(settings.image.allowed_formats);
@@ -253,12 +302,24 @@ export function WorkspacePage() {
           </ViewerHeader>
 
           {!hasImage ? (
-            <UploadOverlay>
+            <UploadOverlay
+              role="button"
+              tabIndex={0}
+              onClick={handleUpload}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleUpload();
+                }
+              }}
+            >
               <input
+                ref={fileInputRef}
                 type="file"
                 hidden
                 accept={accept}
-                onChange={handleUpload}
+                onClick={(event) => event.stopPropagation()}
+                onChange={handleFileInputChange}
               />
 
               <UploadIcon>+</UploadIcon>

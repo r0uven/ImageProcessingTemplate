@@ -132,7 +132,7 @@ export const ClearButton = styled.button`
   }
 `;
 
-export const UploadOverlay = styled.label`
+export const UploadOverlay = styled.div`
   flex: 1;
 
   display: flex;

@@ -11,6 +11,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/plugin-dialog": "2.7.3",
     "@tauri-apps/plugin-sql": "^2.4.0",
     "axios": "^1.18.1",
     "date-fns": "^4.4.0",

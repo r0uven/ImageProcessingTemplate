@@ -4,7 +4,7 @@ import logging
 import statistics
 import time
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime
 from io import BytesIO
@@ -26,6 +26,7 @@ from app.modules.visualisation.overlay_renderer import OverlayRenderer
 from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
+from app.schemas.upload_request import UploadPathRequest
 from app.storage.image_storage import ImageStorage
 from app.utils.pretty_image import make_pretty_image_plot
 from app.utils.run_hash import compute_run_hash
@@ -305,34 +306,50 @@ def _restore_original(
     image_bytes: bytes,
     suffix: str,
     storage: ImageStorage,
-    image_repository: ImageRepository,
 ) -> Path:
-    """Записывает оригинал заново и обновляет путь в БД, если он изменился."""
+    """Записывает оригинал из переданных байтов заново."""
     logger.warning("Original file missing, restoring: image_id=%s", existing.image_id)
 
     try:
-        new_path = storage.save_original(existing.image_id, image_bytes, suffix)
+        return storage.save_original(existing.image_id, image_bytes, suffix)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Unsupported file type") from exc
 
-    if str(new_path) != existing.file_path:
-        image_repository.update_file_path(existing.image_id, str(new_path))
 
-    return new_path
+def _restore_original_from_path(
+    existing: ImageModel,
+    source_path: Path,
+    suffix: str,
+    storage: ImageStorage,
+) -> Path:
+    """Копирует оригинал из файловой системы заново."""
+    logger.warning("Original file missing, restoring: image_id=%s", existing.image_id)
+
+    try:
+        return storage.copy_original(existing.image_id, source_path, suffix)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Unsupported file type") from exc
+    except OSError as exc:
+        raise HTTPException(
+            status_code=500, detail="Failed to copy source image"
+        ) from exc
 
 
 def _reuse_existing_image(
     existing: ImageModel,
-    image_bytes: bytes,
-    suffix: str,
     original_image_name: str,
     preview: Image.Image,
     storage: ImageStorage,
     image_repository: ImageRepository,
+    restore_original: Callable[[], Path],
 ) -> dict:
     """Возвращает уже загруженное изображение, восстанавливая оригинал при необходимости."""
     if not Path(existing.file_path).is_file():
-        _restore_original(existing, image_bytes, suffix, storage, image_repository)
+        new_path = restore_original()
+        if str(new_path) != existing.file_path:
+            image_repository.update_file_path(existing.image_id, str(new_path))
 
     if existing.original_image_name != original_image_name:
         image_repository.update_original_image_name(
@@ -342,6 +359,65 @@ def _reuse_existing_image(
     storage.save_preview(existing.image_id, preview)
     logger.info("Image already exists: image_id=%s", existing.image_id)
     return _upload_response(existing.image_id, preview)
+
+
+async def _reuse_existing_image_from_path(
+    existing: ImageModel,
+    source_path: Path,
+    suffix: str,
+    original_image_name: str,
+    storage: ImageStorage,
+    image_repository: ImageRepository,
+    loader: ImageLoader,
+) -> dict:
+    """Возвращает уже загруженное изображение, не декодируя дубликат без нужды."""
+    if not Path(existing.file_path).is_file():
+        new_path = await run_in_threadpool(
+            _restore_original_from_path, existing, source_path, suffix, storage
+        )
+        if str(new_path) != existing.file_path:
+            image_repository.update_file_path(existing.image_id, str(new_path))
+
+    if existing.original_image_name != original_image_name:
+        image_repository.update_original_image_name(
+            existing.image_id, original_image_name
+        )
+
+    preview = await run_in_threadpool(
+        storage.get_preview, storage.preview_path(existing.image_id)
+    )
+    if preview is None:
+        _, preview = await run_in_threadpool(
+            loader.load_image_from_path, existing.file_path
+        )
+        await run_in_threadpool(storage.save_preview, existing.image_id, preview)
+
+    logger.info("Image already exists: image_id=%s", existing.image_id)
+    return _upload_response(existing.image_id, preview)
+
+
+def _source_image_path(raw_path: str) -> Path:
+    """Проверяет путь, полученный из файлового менеджера на компьютере."""
+    if not raw_path or not raw_path.strip():
+        raise HTTPException(status_code=400, detail="File path is required")
+
+    try:
+        path = Path(raw_path.strip()).expanduser()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid file path") from exc
+
+    if not path.is_absolute():
+        raise HTTPException(status_code=400, detail="Absolute file path is required")
+
+    try:
+        is_file = path.is_file()
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="Invalid file path") from exc
+
+    if not is_file:
+        raise HTTPException(status_code=404, detail="Source image not found")
+
+    return path
 
 
 # ============================================================
@@ -378,12 +454,11 @@ async def upload_image(
     if existing is not None:
         return _reuse_existing_image(
             existing,
-            image_bytes,
-            suffix,
             file.filename,
             preview_image,
             storage,
             image_repository,
+            lambda: _restore_original(existing, image_bytes, suffix, storage),
         )
 
     image_id = str(uuid.uuid4())
@@ -414,6 +489,100 @@ async def upload_image(
         raise HTTPException(status_code=500, detail="Failed to store image") from exc
 
     logger.info("Image uploaded: image_id=%s filename=%s", image_id, file.filename)
+    return _upload_response(image_id, preview_image)
+
+
+@app.post("/upload/path")
+async def upload_image_from_path(
+    request: UploadPathRequest,
+    storage: StorageDep,
+    loader: LoaderDep,
+    image_repository: ImageRepositoryDep,
+) -> dict:
+    """Копирует изображение с локального диска во внутреннее хранилище.
+
+    Фронтенд передаёт только путь к файлу, поэтому байты большого изображения
+    не проходят через HTTP. Копия делается потоково, без загрузки файла в память.
+    """
+    source_path = _source_image_path(request.path)
+    filename = source_path.name
+    suffix = source_path.suffix or ".png"
+
+    # Сначала считаем хэш исходного файла и проверяем кэш. Копирование
+    # в originals выполняется только для действительно нового изображения.
+    try:
+        content_hash = await run_in_threadpool(
+            storage.compute_file_hash, source_path
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except OSError as exc:
+        logger.exception("Failed to read image: %s", source_path)
+        raise HTTPException(
+            status_code=500, detail="Failed to read source image"
+        ) from exc
+
+    existing = image_repository.get_by_hash(content_hash)
+    if existing is not None:
+        return await _reuse_existing_image_from_path(
+            existing,
+            source_path,
+            suffix,
+            filename,
+            storage,
+            image_repository,
+            loader,
+        )
+
+    image_id = str(uuid.uuid4())
+
+    try:
+        file_path = await run_in_threadpool(
+            storage.copy_original, image_id, source_path, suffix
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Source image not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Unsupported file type") from exc
+    except OSError as exc:
+        logger.exception("Failed to copy image: %s", source_path)
+        raise HTTPException(
+            status_code=500, detail="Failed to copy source image"
+        ) from exc
+
+    try:
+        original_image, preview_image = await run_in_threadpool(
+            loader.load_image_from_path, file_path
+        )
+    except Exception as exc:
+        logger.exception("Failed to load image: %s", source_path)
+        _remove_files(file_path)
+        raise HTTPException(status_code=400, detail="Invalid image file") from exc
+
+    try:
+        storage.save_preview(image_id, preview_image)
+        image_repository.create(
+            ImageModel(
+                image_id=image_id,
+                file_path=str(file_path),
+                width=int(original_image.shape[1]),
+                height=int(original_image.shape[0]),
+                scale_value=1.0,
+                content_hash=content_hash,
+                original_image_name=filename,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Failed to persist image: %s", source_path)
+        _remove_files(file_path, storage.preview_path(image_id))
+        raise HTTPException(status_code=500, detail="Failed to store image") from exc
+
+    logger.info(
+        "Image imported from path: image_id=%s filename=%s source=%s",
+        image_id,
+        filename,
+        source_path,
+    )
     return _upload_response(image_id, preview_image)
 
 
