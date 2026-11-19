@@ -7,5 +7,9 @@ export async function getTools() {
 }
 
 export async function deleteTool(id: string) {
-  await client.delete(`/tools/${id}`);
+  await client.delete(`/tools/${id}`, {
+    headers: {
+      "X-Confirm-Delete": id,
+    },
+  });
 }

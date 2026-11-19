@@ -29,7 +29,16 @@ from app.schemas.analyze_request import AnalyzeRequest
 from app.storage.image_storage import ImageStorage
 from app.utils.pretty_image import make_pretty_image_plot
 from app.utils.run_hash import compute_run_hash
-from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -43,6 +52,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_STORAGE_DIR = "data/images"
+
+# Заголовок-подтверждение, который обязан прислать клиент при удалении модели.
+# Браузерный запрос из адресной строки или простая HTML-форма такой заголовок
+# задать не могут, поэтому случайное удаление через прямой запрос невозможно.
+DELETE_CONFIRMATION_HEADER = "X-Confirm-Delete"
 
 AnalysisImageType = Literal["preprocessed", "segmentation", "postprocessed", "overlay"]
 
@@ -603,7 +617,33 @@ def get_tools(tool_repository: ToolRepositoryDep):
 
 
 @app.delete("/tools/{model_id}", status_code=204)
-def delete_tool(model_id: str, tool_repository: ToolRepositoryDep) -> None:
+def delete_tool(
+    model_id: str,
+    tool_repository: ToolRepositoryDep,
+    confirmation: Annotated[
+        str | None, Header(alias=DELETE_CONFIRMATION_HEADER)
+    ] = None,
+) -> None:
+    """Удаляет модель только при явном подтверждении и если она removable."""
+    if confirmation != model_id:
+        raise HTTPException(
+            status_code=428,
+            detail=(
+                "Deletion must be confirmed: "
+                f"pass header {DELETE_CONFIRMATION_HEADER}: {model_id}"
+            ),
+        )
+
+    tool = tool_repository.get_by_id(model_id)
+    if tool is None:
+        raise HTTPException(status_code=404, detail="Tool not found")
+
+    if not tool.removable:
+        raise HTTPException(
+            status_code=403,
+            detail="Tool is protected from deletion",
+        )
+
     try:
         deleted = tool_repository.delete(model_id)
     except Exception as exc:
@@ -614,7 +654,7 @@ def delete_tool(model_id: str, tool_repository: ToolRepositoryDep) -> None:
         ) from exc
 
     if not deleted:
-        raise HTTPException(status_code=404, detail="Tool not found or not removable")
+        raise HTTPException(status_code=409, detail="Tool cannot be deleted")
 
 
 # ============================================================
