@@ -5,7 +5,6 @@ from typing import Any
 @dataclass
 class AnalysisResult:
     analysis_result_id: str = ""
-    run_id: str = ""
 
     pore_count: int = 0
     porosity: float = 0.0

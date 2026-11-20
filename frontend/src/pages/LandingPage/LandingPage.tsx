@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -17,39 +17,20 @@ import {
   Content,
 } from "./LandingPage.styles";
 import { deleteTool, getTools } from "@/api/tools/tools.api";
+import { useAsyncData } from "@/hooks/useAsyncData";
 
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const [tools, setTools] = useState<SegmentationModel[]>([]);
+  const { data: tools, setData: setTools } = useAsyncData<SegmentationModel[]>(
+    getTools,
+  );
 
   const [pendingDelete, setPendingDelete] = useState<SegmentationModel | null>(
     null,
   );
 
   const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadTools = async () => {
-      try {
-        const data = await getTools();
-
-        if (isMounted) {
-          setTools(data);
-        }
-      } catch (error) {
-        console.error("Ошибка загрузки инструментов:", error);
-      }
-    };
-
-    loadTools();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   async function handleDelete() {
     if (!pendingDelete) return;
@@ -61,7 +42,7 @@ export function LandingPage() {
 
       await deleteTool(id);
 
-      setTools((prev) => prev.filter((tool) => tool.model_id !== id));
+      setTools((prev) => prev?.filter((tool) => tool.model_id !== id) ?? null);
       setPendingDelete(null);
     } catch (error) {
       console.error("Ошибка удаления:", error);
@@ -87,7 +68,7 @@ export function LandingPage() {
         </Header>
 
         <CardsGrid>
-          {tools.map((tool) => (
+          {(tools ?? []).map((tool) => (
             <ToolCard
               key={tool.model_id}
               tool={tool}

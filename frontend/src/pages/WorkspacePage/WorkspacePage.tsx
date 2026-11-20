@@ -31,6 +31,7 @@ import {
   uploadImage,
   uploadImageByPath,
 } from "@/api/image/uploadImage";
+import { buildMediaUrl } from "@/api/client";
 import type { UploadResponse } from "@/api/types";
 import { ProcessingSettings } from "./widgets/ProcessingSettings";
 import { formatToAccept } from "./util/textFormatter";
@@ -331,9 +332,9 @@ export function WorkspacePage() {
           ) : (
             <>
               <ImageWrapper>
-                {currentImage?.preview_url && (
+                {currentImage && (
                   <img
-                    src={`${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001"}${currentImage.preview_url}`}
+                    src={buildMediaUrl(currentImage.preview_url) ?? ""}
                     alt="workspace"
                   />
                 )}

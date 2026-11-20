@@ -2,12 +2,6 @@ from app.pipeline.pipeline_context import PipelineContext
 
 
 class FeatureExtractor:
-    def _calculate_area(self, obj):
-        return obj.area
-
-    def _calculate_diameter(self, obj):
-        return obj.equivalent_diameter
-
     def extract(self, context: PipelineContext) -> PipelineContext:
 
         objects = context.objects
@@ -22,8 +16,8 @@ class FeatureExtractor:
         pore_diameters = []
 
         for obj in objects:
-            area = self._calculate_area(obj)
-            diameter = self._calculate_diameter(obj)
+            area = obj.area
+            diameter = obj.equivalent_diameter
 
             pore_areas.append(area)
             pore_diameters.append(diameter)

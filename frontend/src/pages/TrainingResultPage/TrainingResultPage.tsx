@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CartesianGrid,
@@ -13,91 +12,72 @@ import {
 
 import * as S from "./TrainingResultPage.styled";
 import { ImageComparison } from "./ImageComparison/ImageComparison";
+import type { TrainingState } from "@/types/training";
 
-export interface TrainingState {
-  id: number;
+// TODO заменить на backend
 
-  original: string;
+const CHART_DATA = Array.from({ length: 100 }, (_, index) => ({
+  epoch: index + 1,
 
-  mask: string;
+  loss: Number((1 / (index * 0.15 + 1)).toFixed(3)),
 
-  prediction: string;
+  accuracy: Number((60 + Math.log(index + 1) * 8).toFixed(2)),
+}));
 
-  accuracy: number;
+// TODO заменить ответом backend
 
-  iou: number;
+const TEST_IMAGES: TrainingState[] = [
+  {
+    id: 1,
 
-  dice: number;
-}
+    original: "/test/A.H.1.bmp",
+
+    mask: "/test/ETALON_A.H.1.png",
+
+    prediction: "/test/Seg_A.H.1.jpg",
+
+    accuracy: 98.4,
+
+    iou: 96.8,
+
+    dice: 97.6,
+  },
+
+  {
+    id: 2,
+
+    original: "/test/original2.png",
+
+    mask: "/test/mask2.png",
+
+    prediction: "/test/prediction2.png",
+
+    accuracy: 97.9,
+
+    iou: 96.1,
+
+    dice: 97.1,
+  },
+
+  {
+    id: 3,
+
+    original: "/test/original3.png",
+
+    mask: "/test/mask3.png",
+
+    prediction: "/test/prediction3.png",
+
+    accuracy: 98.8,
+
+    iou: 97.3,
+
+    dice: 98.1,
+  },
+];
 
 export const TrainingResultPage = () => {
   const navigate = useNavigate();
-
-  // TODO заменить на backend
-
-  const chartData = useMemo(
-    () =>
-      Array.from({ length: 100 }, (_, index) => ({
-        epoch: index + 1,
-
-        loss: Number((1 / (index * 0.15 + 1)).toFixed(3)),
-
-        accuracy: Number((60 + Math.log(index + 1) * 8).toFixed(2)),
-      })),
-    [],
-  );
-
-  // TODO заменить ответом backend
-
-  const testImages: TrainingState[] = [
-    {
-      id: 1,
-
-      original: "/test/A.H.1.bmp",
-
-      mask: "/test/ETALON_A.H.1.png",
-
-      prediction: "/test/Seg_A.H.1.jpg",
-
-      accuracy: 98.4,
-
-      iou: 96.8,
-
-      dice: 97.6,
-    },
-
-    {
-      id: 2,
-
-      original: "/test/original2.png",
-
-      mask: "/test/mask2.png",
-
-      prediction: "/test/prediction2.png",
-
-      accuracy: 97.9,
-
-      iou: 96.1,
-
-      dice: 97.1,
-    },
-
-    {
-      id: 3,
-
-      original: "/test/original3.png",
-
-      mask: "/test/mask3.png",
-
-      prediction: "/test/prediction3.png",
-
-      accuracy: 98.8,
-
-      iou: 97.3,
-
-      dice: 98.1,
-    },
-  ];
 
   const handleSaveModel = () => {
     // TODO запрос на сохранение модели
@@ -165,7 +145,7 @@ export const TrainingResultPage = () => {
             }}
           >
             <ResponsiveContainer>
-              <LineChart data={chartData}>
+              <LineChart data={CHART_DATA}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="rgba(255,255,255,0.08)"
@@ -201,8 +181,8 @@ export const TrainingResultPage = () => {
           </div>
         </S.Card>
         <S.Card>
-          <ImageComparison images={testImages}></ImageComparison>
-        </S.Card>{" "}
+          <ImageComparison images={TEST_IMAGES} />
+        </S.Card>
         <S.Card>
           <S.CardTitle>Статистика обучения</S.CardTitle>
 

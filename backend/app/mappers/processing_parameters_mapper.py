@@ -1,5 +1,3 @@
-from typing import Any
-
 from app.entities.processing_parameters import (
     NeuralSegmentationParameters,
     OutputMaskParameters,
@@ -63,36 +61,5 @@ def to_processing_parameters(
                 extra_ratio=request.separation.qualityMetrics.extraRatio,
             ),
             algorithm_params=request.separation.algorithmParams.copy(),
-        ),
-    )
-
-
-def from_processing_parameters_data(
-    parameters_id: str,
-    preprocessing: dict[str, Any],
-    segmentation: dict[str, Any],
-    separation: dict[str, Any],
-) -> ProcessingParameters:
-    """Восстанавливает параметры обработки из JSON-полей, сохранённых в БД."""
-
-    return ProcessingParameters(
-        parameters_id=parameters_id,
-        preprocessing=PreprocessingParameters(**preprocessing),
-        segmentation=SegmentationParameters(
-            method=segmentation["method"],
-            output_mask=OutputMaskParameters(**segmentation["output_mask"]),
-            threshold=ThresholdSegmentationParameters(**segmentation["threshold"]),
-            neural=NeuralSegmentationParameters(**segmentation["neural"]),
-        ),
-        separation=SeparationParameters(
-            enabled=separation["enabled"],
-            apply_only_to_candidates=separation["apply_only_to_candidates"],
-            preserve_autonomous_pores=separation["preserve_autonomous_pores"],
-            keep_unseparated_candidates=separation["keep_unseparated_candidates"],
-            validate_separation_result=separation["validate_separation_result"],
-            preserve_parent_link=separation["preserve_parent_link"],
-            evaluate_separation_quality=separation["evaluate_separation_quality"],
-            quality_metrics=QualityMetricsParameters(**separation["quality_metrics"]),
-            algorithm_params=separation["algorithm_params"],
         ),
     )

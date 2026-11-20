@@ -1,9 +1,13 @@
+import logging
+
 from app.modules.feature_extraction.feature_extractor import FeatureExtractor
 from app.modules.object_detection.mock_detector import MockDetector
 from app.modules.postprocessing.postprocessor import Postprocessor
 from app.modules.preprocessing.preprocessor import Preprocessor
 from app.modules.segmentation.threshold_segmenter import ThresholdSegmenter
 from app.pipeline.pipeline_context import PipelineContext
+
+logger = logging.getLogger(__name__)
 
 
 class AnalysisPipeline:
@@ -16,7 +20,7 @@ class AnalysisPipeline:
 
     def run(self, context: PipelineContext) -> PipelineContext:
 
-        print("Pipeline started")
+        logger.info("Pipeline started")
 
         original_image = context.image_data.original_image
 
@@ -24,23 +28,25 @@ class AnalysisPipeline:
         # Preprocessing
         # =========================================================
 
-        preprocessed_image = self.preprocessor.preprocess(original_image)
+        preprocessed_image = self.preprocessor.preprocess(
+            original_image, context.parameters.preprocessing
+        )
 
         context.image_data.preprocessed_image = preprocessed_image
 
-        print("Preprocessing completed")
+        logger.info("Preprocessing completed")
 
         # =========================================================
         # Segmentation
         # =========================================================
 
-        segmentation_mask = self.segmenter.segment(preprocessed_image)
-
-        print(segmentation_mask.shape)
+        segmentation_mask = self.segmenter.segment(
+            preprocessed_image, context.parameters.segmentation.threshold
+        )
 
         context.image_data.segmentation_mask = segmentation_mask
 
-        print("Segmentation completed")
+        logger.info("Segmentation completed")
 
         # =========================================================
         # Postprocessing
@@ -50,7 +56,7 @@ class AnalysisPipeline:
 
         context.image_data.postprocessed_mask = postprocessed_mask
 
-        print("Postprocessing completed")
+        logger.info("Postprocessing completed")
 
         # =========================================================
         # Object detection
@@ -60,7 +66,7 @@ class AnalysisPipeline:
 
         context.objects = detected_objects
 
-        print(f"Detected objects: {len(detected_objects)}")
+        logger.info("Detected objects: %s", len(detected_objects))
 
         # =========================================================
         # Feature extraction
@@ -68,8 +74,8 @@ class AnalysisPipeline:
 
         self.feature_extractor.extract(context)
 
-        print("Feature extraction completed")
+        logger.info("Feature extraction completed")
 
-        print("Pipeline finished")
+        logger.info("Pipeline finished")
 
         return context

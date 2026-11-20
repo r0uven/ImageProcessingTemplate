@@ -127,32 +127,6 @@ export const Card = styled.div`
   margin-bottom: 28px;
 `;
 
-export const ChartPlaceholder = styled.div`
-  height: 320px;
-
-  border-radius: 18px;
-
-  border: 2px dashed rgba(255, 255, 255, 0.08);
-
-  background: rgba(255, 255, 255, 0.02);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: rgba(255, 255, 255, 0.4);
-
-  font-size: 18px;
-`;
-
-export const EmptyPreview = styled.div`
-  color: rgba(255, 255, 255, 0.35);
-
-  font-size: 15px;
-`;
-
 export const StatsGrid = styled.div`
   display: grid;
 

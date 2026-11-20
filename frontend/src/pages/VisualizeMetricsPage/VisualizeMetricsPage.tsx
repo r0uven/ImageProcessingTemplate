@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import * as S from "./VisualizeMetricsPage.styled";
 import { DistributionChart } from "@/components/DistributionChart/DistributionChart";
-import type { DistributionType, ProcessingMetrics } from "./types";
+import type { DistributionType } from "@/api/types";
 import { getProcessingMetrics } from "@/api/metrics/getMetrics";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import { clearAllWorkspaceStates } from "@/pages/WorkspacePage/workspaceStore";
+
+const DISTRIBUTION_TITLES: Record<DistributionType, string> = {
+  PORE_SIZE: "Размер пор",
+  AREA: "Площадь объектов",
+  PERIMETER: "Периметр объектов",
+  CIRCULARITY: "Круглость",
+  FORM_FACTOR: "Фактор формы",
+};
 
 export const ProcessingMetricsPage = () => {
   const navigate = useNavigate();
@@ -14,47 +23,18 @@ export const ProcessingMetricsPage = () => {
     useState<DistributionType>("PORE_SIZE");
 
   const { runId } = useParams<{ runId: string }>();
-  const [metrics, setMetrics] = useState<ProcessingMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const { data: metrics, loading, error } = useAsyncData(async () => {
     if (!runId) {
-      setError("Не указан идентификатор обработки");
-      console.log(runId);
-
-      setLoading(false);
-      return;
+      throw new Error("Не указан идентификатор обработки");
     }
 
-    const loadMetrics = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const data = await getProcessingMetrics(runId);
-
-        setMetrics(data);
-      } catch {
-        setError("Не удалось загрузить результаты анализа");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMetrics();
+    try {
+      return await getProcessingMetrics(runId);
+    } catch (cause) {
+      throw new Error("Не удалось загрузить результаты анализа", { cause });
+    }
   }, [runId]);
-
-  const titles = useMemo(
-    () => ({
-      PORE_SIZE: "Размер пор",
-      AREA: "Площадь объектов",
-      PERIMETER: "Периметр объектов",
-      CIRCULARITY: "Круглость",
-      FORM_FACTOR: "Фактор формы",
-    }),
-    [],
-  );
 
   // Возврат к настройкам предыдущей обработки: страница обработки сохраняет
   // своё состояние, поэтому изображение и параметры останутся на месте.
@@ -129,7 +109,7 @@ export const ProcessingMetricsPage = () => {
           <S.CardTitle>Распределение характеристик</S.CardTitle>
 
           <S.ModeButtons>
-            {Object.entries(titles).map(([key, value]) => {
+            {Object.entries(DISTRIBUTION_TITLES).map(([key, value]) => {
               const distributionType = key as DistributionType;
 
               return (
@@ -145,7 +125,7 @@ export const ProcessingMetricsPage = () => {
           </S.ModeButtons>
 
           <DistributionChart
-            title={titles[selectedDistribution]}
+            title={DISTRIBUTION_TITLES[selectedDistribution]}
             data={metrics.distributions[selectedDistribution]}
           />
         </S.ChartCard>

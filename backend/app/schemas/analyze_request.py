@@ -12,20 +12,6 @@ class PreprocessingRequest(BaseModel):
     preserveSize: bool
 
 
-class PostprocessingRequest(BaseModel):
-    removeSmallObjects: bool
-    minObjectArea: int
-    fillHoles: bool
-    morphologyEnabled: bool
-    morphologyOperation: str
-    kernelSize: int
-
-
-class ObjectDetectionRequest(BaseModel):
-    connectivity: int
-    minObjectArea: int
-
-
 class QualityMetricsRequest(BaseModel):
     coveredArea: bool
     lostArea: bool

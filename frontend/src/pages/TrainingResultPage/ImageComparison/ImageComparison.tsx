@@ -1,22 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import * as S from "./ImageComparison.styled.tsx";
-import type { TrainingState } from "../TrainingResultPage.tsx";
+import type { TrainingState } from "@/types/training";
 
-// interface ImageComparisonProps {
-//   mask: string;
-
-//   prediction: string;
-// }
-// interface ImageComparisonProps {
-//   leftImage: string;
-
-//   rightImage: string;
-
-//   leftLabel?: string;
-
-//   rightLabel?: string;
-// }
 interface Props {
   images: TrainingState[];
 }
@@ -66,22 +52,8 @@ export const ImageComparison = ({ images }: Props) => {
     updatePosition(event.clientX);
   };
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!dragging) {
-      return;
-    }
-
-    updatePosition(event.clientX);
-  };
-
-  const handleMouseUp = () => {
-    setDragging(false);
-  };
-
-  // const handleMouseLeave = () => {
-  //   setDragging(false);
-  // };
-
+  // Перемещение и отпускание кнопки обрабатываются на window, чтобы
+  // перетаскивание не обрывалось при выходе курсора за пределы контейнера.
   useEffect(() => {
     const move = (e: MouseEvent) => {
       if (!dragging) return;
@@ -122,9 +94,6 @@ export const ImageComparison = ({ images }: Props) => {
             <S.Viewer
               ref={containerRef}
               onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              // onMouseLeave={handleMouseLeave}
             >
               <S.BaseImage src={currentImage.mask} alt="" draggable={false} />
 

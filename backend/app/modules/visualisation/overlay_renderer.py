@@ -1,8 +1,10 @@
 import io
 
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
+from app.entities.pore_object import PoreObject
 from matplotlib import patches
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -10,7 +12,11 @@ from PIL import Image
 
 
 class OverlayRenderer:
-    def render_detection_overlay(self, image, detected_objects):
+    def render_detection_overlay(
+        self,
+        image: np.ndarray,
+        detected_objects: list[PoreObject],
+    ) -> Image.Image:
         fig = plt.figure(figsize=(10, 10), dpi=150)
 
         ax = Axes(fig, (0, 0, 1, 1))
@@ -20,7 +26,7 @@ class OverlayRenderer:
         ax.imshow(image, cmap="gray")
 
         for obj in detected_objects:
-            if not hasattr(obj, "bounding_box"):
+            if obj.bounding_box is None:
                 continue
 
             min_row, min_col, max_row, max_col = obj.bounding_box
@@ -62,6 +68,4 @@ class OverlayRenderer:
 
         buf.seek(0)
 
-        img = Image.open(buf).convert("RGB")
-
-        return img
+        return Image.open(buf).convert("RGB")

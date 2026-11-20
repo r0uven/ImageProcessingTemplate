@@ -16,12 +16,12 @@ export const BackButton = () => {
   if (isLauncher) return null;
 
   const handleBack = () => {
-    if (location.pathname.startsWith("/workspace")) {
-      navigate("/");
-      return;
-    }
-
-    if (location.pathname === "/history") {
+    // Со страниц верхнего уровня возвращаемся на главный экран,
+    // для вложенных — используем историю браузера.
+    if (
+      location.pathname.startsWith("/workspace") ||
+      location.pathname === "/history"
+    ) {
       navigate("/");
       return;
     }
