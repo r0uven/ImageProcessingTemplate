@@ -1,6 +1,7 @@
 import numpy as np
-from app.config.config_loader import APP_SETTINGS
 from skimage.morphology import remove_small_objects
+
+from app.config.config_loader import APP_SETTINGS
 
 
 class Postprocessor:
@@ -18,7 +19,17 @@ class Postprocessor:
             inverted_mask = ~processed_mask
 
             # Удаляем маленькие поры
-            cleaned_mask = remove_small_objects(inverted_mask, min_size=min_object_area)
+            # ``max_size`` is the replacement for deprecated ``min_size``.
+            # Subtract one to preserve the old strict "smaller than" behavior.
+            try:
+                cleaned_mask = remove_small_objects(
+                    inverted_mask, max_size=max(min_object_area - 1, 0)
+                )
+            except TypeError:
+                # Compatibility with scikit-image versions before max_size.
+                cleaned_mask = remove_small_objects(
+                    inverted_mask, min_size=min_object_area
+                )
 
             # Возвращаем обратно
             processed_mask = ~cleaned_mask

@@ -1,7 +1,9 @@
+import logging
 import sqlite3
 from pathlib import Path
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
+logger = logging.getLogger(__name__)
 
 
 def run_migrations(connection: sqlite3.Connection):
@@ -38,4 +40,4 @@ def run_migrations(connection: sqlite3.Connection):
 
         connection.commit()
 
-        print(f"Applied migration {file.name}")
+        logger.info("Applied migration %s", file.name)

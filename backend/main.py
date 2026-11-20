@@ -6,7 +6,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager, suppress
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Literal
@@ -44,15 +44,17 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
+LOG_PATH = Path(__file__).resolve().parent / "app.log"
+
 logging.basicConfig(
-    filename="app.log",  # Имя файла (появится в папке с проектом)
+    filename=LOG_PATH,
     level=logging.INFO,  # Записывать INFO и выше
     encoding="utf-8",  # Чтобы русский текст не превратился в кракозябры
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_STORAGE_DIR = "data/images"
+DEFAULT_STORAGE_DIR = Path(__file__).resolve().parent / "data" / "images"
 
 # Заголовок-подтверждение, который обязан прислать клиент при удалении модели.
 # Браузерный запрос из адресной строки или простая HTML-форма такой заголовок
@@ -117,7 +119,7 @@ ToolRepositoryDep = Annotated[ToolRepository, Depends(get_tool_repository)]
 
 
 async def _cleanup_cache_periodically(storage: ImageStorage) -> None:
-    """Постепенно удаляет самые старые оригиналы и превью, пока приложение работает."""
+    """Постепенно удаляет самые старые превью, пока приложение работает."""
     while True:
         try:
             await run_in_threadpool(storage.cleanup_cache)
@@ -218,10 +220,18 @@ def _to_pil(image: np.ndarray | Image.Image) -> Image.Image:
     """Приводит OpenCV-массив (BGR/BGRA) к PIL.Image (RGB/RGBA)."""
     if isinstance(image, Image.Image):
         return image
-    if image.ndim == 3 and image.shape[2] == 4:
+    if image.ndim == 2:
+        return Image.fromarray(image)
+    if image.ndim != 3:
+        raise ValueError("Ожидалось 2D или 3D изображение")
+    if image.shape[2] == 1:
+        return Image.fromarray(image[:, :, 0])
+    if image.shape[2] == 4:
         image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
-    elif image.ndim == 3:
+    elif image.shape[2] == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    else:
+        raise ValueError("Ожидалось изображение с 1, 3 или 4 каналами")
     return Image.fromarray(image)
 
 
@@ -256,6 +266,43 @@ def _upload_response(image_id: str, preview: Image.Image) -> dict:
         "width": preview.width,
         "height": preview.height,
     }
+
+
+def _persist_image(
+    image_id: str,
+    file_path: Path,
+    original_image: np.ndarray,
+    preview: Image.Image,
+    content_hash: str,
+    original_image_name: str,
+    storage: ImageStorage,
+    image_repository: ImageRepository,
+) -> dict:
+    """Сохраняет превью и метаданные изображения как одну операцию.
+
+    Файл оригинала уже копируется до вызова этой функции. Если запись
+    превью или БД не удалась, удаляем оба созданных файла, чтобы не оставлять
+    сиротские данные на диске.
+    """
+    try:
+        storage.save_preview(image_id, preview)
+        image_repository.create(
+            ImageModel(
+                image_id=image_id,
+                file_path=str(file_path),
+                width=int(original_image.shape[1]),
+                height=int(original_image.shape[0]),
+                scale_value=1.0,
+                content_hash=content_hash,
+                original_image_name=original_image_name,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Failed to persist image: %s", original_image_name)
+        _remove_files(file_path, storage.preview_path(image_id))
+        raise HTTPException(status_code=500, detail="Failed to store image") from exc
+
+    return _upload_response(image_id, preview)
 
 
 def _analysis_images_exist(storage: ImageStorage, run_id: str) -> bool:
@@ -346,10 +393,13 @@ def _reuse_existing_image(
     restore_original: Callable[[], Path],
 ) -> dict:
     """Возвращает уже загруженное изображение, восстанавливая оригинал при необходимости."""
-    if not Path(existing.file_path).is_file():
+    existing_path = storage.resolve_path(existing.file_path)
+    if not existing_path.is_file():
         new_path = restore_original()
         if str(new_path) != existing.file_path:
             image_repository.update_file_path(existing.image_id, str(new_path))
+    elif str(existing_path) != existing.file_path:
+        image_repository.update_file_path(existing.image_id, str(existing_path))
 
     if existing.original_image_name != original_image_name:
         image_repository.update_original_image_name(
@@ -371,12 +421,16 @@ async def _reuse_existing_image_from_path(
     loader: ImageLoader,
 ) -> dict:
     """Возвращает уже загруженное изображение, не декодируя дубликат без нужды."""
-    if not Path(existing.file_path).is_file():
+    existing_path = storage.resolve_path(existing.file_path)
+    if not existing_path.is_file():
         new_path = await run_in_threadpool(
             _restore_original_from_path, existing, source_path, suffix, storage
         )
+        existing_path = new_path
         if str(new_path) != existing.file_path:
             image_repository.update_file_path(existing.image_id, str(new_path))
+    elif str(existing_path) != existing.file_path:
+        image_repository.update_file_path(existing.image_id, str(existing_path))
 
     if existing.original_image_name != original_image_name:
         image_repository.update_original_image_name(
@@ -387,9 +441,7 @@ async def _reuse_existing_image_from_path(
         storage.get_preview, storage.preview_path(existing.image_id)
     )
     if preview is None:
-        _, preview = await run_in_threadpool(
-            loader.load_image_from_path, existing.file_path
-        )
+        _, preview = await run_in_threadpool(loader.load_image_from_path, existing_path)
         await run_in_threadpool(storage.save_preview, existing.image_id, preview)
 
     logger.info("Image already exists: image_id=%s", existing.image_id)
@@ -452,7 +504,8 @@ async def upload_image(
     suffix = Path(file.filename).suffix or ".png"
     existing = image_repository.get_by_hash(content_hash)
     if existing is not None:
-        return _reuse_existing_image(
+        return await run_in_threadpool(
+            _reuse_existing_image,
             existing,
             file.filename,
             preview_image,
@@ -462,34 +515,25 @@ async def upload_image(
         )
 
     image_id = str(uuid.uuid4())
-    suffix = Path(file.filename).suffix or ".png"
-
     try:
-        file_path = storage.save_original(image_id, image_bytes, suffix)
+        file_path = await run_in_threadpool(
+            storage.save_original, image_id, image_bytes, suffix
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Unsupported file type") from exc
 
-    try:
-        storage.save_preview(image_id, preview_image)
-        image_repository.create(
-            ImageModel(
-                image_id=image_id,
-                file_path=str(file_path),
-                width=int(original_image.shape[1]),
-                height=int(original_image.shape[0]),
-                scale_value=1.0,
-                content_hash=content_hash,
-                original_image_name=file.filename,
-            )
-        )
-    except Exception as exc:
-        logger.exception("Failed to persist image: %s", file.filename)
-        # Откат: без записи в БД файлы не должны оставаться на диске.
-        _remove_files(file_path, storage.preview_path(image_id))
-        raise HTTPException(status_code=500, detail="Failed to store image") from exc
-
     logger.info("Image uploaded: image_id=%s filename=%s", image_id, file.filename)
-    return _upload_response(image_id, preview_image)
+    return await run_in_threadpool(
+        _persist_image,
+        image_id,
+        file_path,
+        original_image,
+        preview_image,
+        content_hash,
+        file.filename,
+        storage,
+        image_repository,
+    )
 
 
 @app.post("/upload/path")
@@ -511,9 +555,7 @@ async def upload_image_from_path(
     # Сначала считаем хэш исходного файла и проверяем кэш. Копирование
     # в originals выполняется только для действительно нового изображения.
     try:
-        content_hash = await run_in_threadpool(
-            storage.compute_file_hash, source_path
-        )
+        content_hash = await run_in_threadpool(storage.compute_file_hash, source_path)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Source image not found") from exc
     except OSError as exc:
@@ -559,31 +601,23 @@ async def upload_image_from_path(
         _remove_files(file_path)
         raise HTTPException(status_code=400, detail="Invalid image file") from exc
 
-    try:
-        storage.save_preview(image_id, preview_image)
-        image_repository.create(
-            ImageModel(
-                image_id=image_id,
-                file_path=str(file_path),
-                width=int(original_image.shape[1]),
-                height=int(original_image.shape[0]),
-                scale_value=1.0,
-                content_hash=content_hash,
-                original_image_name=filename,
-            )
-        )
-    except Exception as exc:
-        logger.exception("Failed to persist image: %s", source_path)
-        _remove_files(file_path, storage.preview_path(image_id))
-        raise HTTPException(status_code=500, detail="Failed to store image") from exc
-
     logger.info(
         "Image imported from path: image_id=%s filename=%s source=%s",
         image_id,
         filename,
         source_path,
     )
-    return _upload_response(image_id, preview_image)
+    return await run_in_threadpool(
+        _persist_image,
+        image_id,
+        file_path,
+        original_image,
+        preview_image,
+        content_hash,
+        filename,
+        storage,
+        image_repository,
+    )
 
 
 # ============================================================
@@ -666,15 +700,7 @@ def analyze_image(
         analysis_result_id = str(uuid.uuid4())
         analysis.analysis_result_id = analysis_result_id
 
-        analysis_repository.create_analysis_result(
-            analysis_result_id=analysis_result_id,
-            pore_count=analysis.pore_count,
-            porosity=analysis.porosity,
-            area=analysis.area,
-            diameter=analysis.diameter,
-            size_distribution=analysis.size_distribution,
-        )
-        analysis_repository.create_run(
+        analysis_repository.create_analysis(
             run=AnalysisRunModel(
                 run_id=run_id,
                 image_id=image_id,
@@ -684,6 +710,7 @@ def analyze_image(
                 created_at=int(time.time()),
             ),
             parameters=parameters,
+            result=analysis,
         )
     else:
         logger.info("Analysis run already exists: run_id=%s", run_id)
@@ -861,9 +888,10 @@ def get_history(
                 "image_id": image_id,
                 "filename": original_image_name or Path(file_path).name,
                 "modelName": model_name,
-                "createdAt": datetime.fromtimestamp(created_at, tz=UTC).strftime(
-                    "%d.%m.%Y %H:%M"
-                ),
+                "createdAt": datetime.fromtimestamp(
+                    created_at,
+                    tz=timezone.utc,  # noqa: UP017
+                ).strftime("%d.%m.%Y %H:%M"),
                 "duration": 0.0,  # пока не сохраняется в БД
                 "width": width,
                 "height": height,
@@ -957,8 +985,10 @@ def get_analysis_metrics(run_id: str, analysis_repository: AnalysisRepositoryDep
     diameters = distribution.get("diameters", [])
 
     # Если детального распределения нет, статистику строим по одному агрегированному значению.
-    area_values = areas or ([area] if area > 0 else [])
-    diameter_values = diameters or ([diameter] if diameter > 0 else [])
+    area_values = areas or ([area] if pore_count > 0 and area > 0 else [])
+    diameter_values = diameters or (
+        [diameter] if pore_count > 0 and diameter > 0 else []
+    )
 
     zero_stats = _describe([])
 

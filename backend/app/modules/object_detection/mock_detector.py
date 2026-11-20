@@ -37,12 +37,17 @@ class MockDetector(DetectorInterface):
             if perimeter > 0:
                 roundness = 4 * np.pi * region.area / (perimeter**2)
 
+            if hasattr(region, "equivalent_diameter_area"):
+                equivalent_diameter = region.equivalent_diameter_area
+            else:
+                equivalent_diameter = region.equivalent_diameter
+
             pore_object = PoreObject(
                 object_id=index + 1,
                 area=float(region.area),
                 perimeter=float(perimeter),
                 centroid=(float(region.centroid[0]), float(region.centroid[1])),
-                equivalent_diameter=float(region.equivalent_diameter),
+                equivalent_diameter=float(equivalent_diameter),
                 bounding_box=region.bbox,
                 roundness=roundness,
             )

@@ -1,27 +1,34 @@
 import cv2
 import numpy as np
-from app.config.config_loader import APP_SETTINGS
+
+from app.entities.processing_parameters import (
+    PreprocessingParameters,
+    default_preprocessing_parameters,
+)
 
 
 class Preprocessor:
-    def preprocess(self, image: np.ndarray) -> np.ndarray:
-
-        settings = APP_SETTINGS["preprocessing"]
+    def preprocess(
+        self,
+        image: np.ndarray,
+        parameters: PreprocessingParameters | None = None,
+    ) -> np.ndarray:
+        settings = parameters or default_preprocessing_parameters()
 
         processed_image = image.copy()
 
-        if settings["normalize"]:
+        if settings.normalize:
             processed_image_copy = np.zeros_like(processed_image, dtype=np.uint8)
             cv2.normalize(
                 processed_image, processed_image_copy, 0.0, 255.0, cv2.NORM_MINMAX
             )
             processed_image = processed_image_copy
 
-        if settings["denoise"]:
+        if settings.denoise:
             processed_image = cv2.fastNlMeansDenoising(processed_image)
 
-        if settings["smoothing"]:
-            filter_size = settings["filter_size"]
+        if settings.smoothing:
+            filter_size = settings.filter_size
 
             processed_image = cv2.GaussianBlur(
                 processed_image, (filter_size, filter_size), 0

@@ -62,6 +62,8 @@ class ImageStorage:
         for directory in (self.original_dir, self.preview_dir, self.analysis_dir):
             directory.mkdir(parents=True, exist_ok=True)
 
+        if cache_size < 1:
+            raise ValueError("cache_size must be greater than zero")
         self._cache_size = cache_size
         self._lock = (
             threading.RLock()
@@ -160,10 +162,24 @@ class ImageStorage:
         Проверяет, что запрашиваемый путь физически находится внутри корневой директории
         хранилища (защита от Path Traversal атак).
         """
-        path = Path(file_path).resolve()
-        if self.base_dir not in path.parents:
-            raise ValueError(f"Путь вне хранилища: {path}")
-        return path
+        raw_path = Path(file_path)
+        candidates = [raw_path]
+        if not raw_path.is_absolute():
+            # До перехода на абсолютные пути БД сохраняла ``data/images/...``.
+            # Проверяем этот legacy-путь относительно backend directory, не
+            # ослабляя проверку принадлежности storage root.
+            candidates.append(self.base_dir.parent.parent / raw_path)
+
+        for candidate in candidates:
+            path = candidate.resolve()
+            if self.base_dir in path.parents:
+                return path
+
+        raise ValueError(f"Путь вне хранилища: {file_path}")
+
+    def resolve_path(self, file_path: str | Path) -> Path:
+        """Возвращает канонический путь внутри хранилища."""
+        return self._ensure_inside_base(file_path)
 
     def _load_cached(
         self,
@@ -179,9 +195,10 @@ class ImageStorage:
 
         # Проверяем кэш под блокировкой
         with self._lock:
-            if path in cache:
+            if path in cache and path.is_file():
                 cache.move_to_end(path)  # Обновляем статус использования (LRU)
                 return cache[path]
+            cache.pop(path, None)
 
         # Чтение с диска выполняется БЕЗ блокировки, чтобы не удерживать мьютекс
         # во время тяжелых операций ввода-вывода (I/O).
@@ -389,34 +406,38 @@ class ImageStorage:
     # ------------------------------------------------------------------
 
     def _cache_files_oldest_first(self) -> list[tuple[float, Path, int]]:
-        """Собирает файлы originals и previews, сортируя их от старых к новым."""
+        """Собирает превью, сортируя их от старых к новым.
+
+        Оригиналы не являются кэшем: на них ссылается база данных, поэтому
+        автоматическое удаление оригинала оставило бы рабочую запись без
+        исходного изображения.
+        """
         files: list[tuple[float, Path, int]] = []
 
-        for directory in (self.original_dir, self.preview_dir):
+        try:
+            entries = self.preview_dir.iterdir()
+        except OSError:
+            logger.warning("Failed to read cache directory: %s", self.preview_dir)
+            return files
+
+        for path in entries:
             try:
-                entries = directory.iterdir()
+                if not path.is_file():
+                    continue
+                stat = path.stat()
             except OSError:
-                logger.warning("Failed to read cache directory: %s", directory)
                 continue
 
-            for path in entries:
-                try:
-                    if not path.is_file():
-                        continue
-                    stat = path.stat()
-                except OSError:
-                    continue
-
-                files.append((stat.st_mtime, path, stat.st_size))
+            files.append((stat.st_mtime, path, stat.st_size))
 
         files.sort(key=lambda item: item[0])
         return files
 
     def cleanup_cache(self) -> dict[str, int]:
-        """Удаляет устаревшие или лишние файлы кэша по одному, начиная с самых старых.
+        """Удаляет устаревшие или лишние превью по одному, начиная с самых старых.
 
-        Файл удаляется, если он старше ``cache_max_age_days`` или если
-        суммарный размер originals + previews превышает ``cache_max_total_bytes``.
+        Превью удаляется, если оно старше ``cache_max_age_days`` или если
+        суммарный размер превью превышает ``cache_max_total_bytes``.
         За один проход удаляется не более ``cleanup_max_deletions_per_run`` файлов,
         чтобы очистка шла постепенно.
         """
@@ -448,8 +469,9 @@ class ImageStorage:
                 continue
 
             with self._lock:
-                self._original_cache.pop(path, None)
-                self._preview_cache.pop(path, None)
+                resolved_path = path.resolve()
+                self._original_cache.pop(resolved_path, None)
+                self._preview_cache.pop(resolved_path, None)
 
             total_bytes -= size
             removed_bytes += size
