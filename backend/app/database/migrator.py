@@ -6,7 +6,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 logger = logging.getLogger(__name__)
 
 
-def run_migrations(connection: sqlite3.Connection):
+def run_migrations(connection: sqlite3.Connection) -> None:
 
     connection.execute(
         """

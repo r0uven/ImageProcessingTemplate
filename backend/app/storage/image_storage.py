@@ -219,7 +219,7 @@ class ImageStorage:
     def _invalidate(self, cache: OrderedDict, path: Path) -> None:
         """Удаляет файл из указанного кэша при его изменении или перезаписи."""
         with self._lock:
-            cache.pop(path, None)
+            cache.pop(path.resolve(), None)
 
     # ------------------------------------------------------------------
     # Оригиналы изображений
@@ -279,8 +279,9 @@ class ImageStorage:
             return None
 
         # cv2.imdecode корректно работает с не-ASCII путями на Windows (в отличие от cv2.imread).
-        # IMREAD_UNCHANGED сохраняет исходное количество каналов (включая альфа-канал) и глубину бит.
-        return cv2.imdecode(buf, cv2.IMREAD_UNCHANGED)
+        # IMREAD_COLOR приводит изображение к единому виду (3 канала BGR), как и при
+        # загрузке. Иначе grayscale/RGBA-файлы ломают пайплайн, ожидающий BGR.
+        return cv2.imdecode(buf, cv2.IMREAD_COLOR)
 
     def get_original(self, file_path: str | Path) -> np.ndarray | None:
         """
@@ -469,9 +470,7 @@ class ImageStorage:
                 continue
 
             with self._lock:
-                resolved_path = path.resolve()
-                self._original_cache.pop(resolved_path, None)
-                self._preview_cache.pop(resolved_path, None)
+                self._preview_cache.pop(path.resolve(), None)
 
             total_bytes -= size
             removed_bytes += size

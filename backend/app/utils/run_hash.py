@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
+from app.mappers.processing_parameters_mapper import to_processing_parameters
 from app.schemas.analyze_request import AnalyzeRequest
 
 # Версия схемы хеширования. Меняется при изменении состава факторов
@@ -19,8 +20,6 @@ def _serialize_parameters(parameters: AnalyzeRequest) -> dict[str, Any]:
     генерируется клиентом. Он не влияет на результат обработки, поэтому
     исключается из хеша: одинаковые параметры должны давать одинаковый хеш.
     """
-    from app.mappers.processing_parameters_mapper import to_processing_parameters
-
     serialized = json.loads(
         json.dumps(
             asdict(to_processing_parameters(parameters)),

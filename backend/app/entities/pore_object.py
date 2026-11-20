@@ -15,7 +15,3 @@ class PoreObject:
     bounding_box: tuple[int, int, int, int] | None
 
     roundness: float | None
-
-    status: str = "autonomous"
-
-    parent_object_id: int | None = None

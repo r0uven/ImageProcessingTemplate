@@ -8,5 +8,4 @@ from app.entities.pore_object import PoreObject
 class DetectorInterface(ABC):
     @abstractmethod
     def detect(self, mask: np.ndarray) -> list[PoreObject]:
-
-        pass
+        """Возвращает объекты, найденные на бинарной маске."""

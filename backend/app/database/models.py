@@ -1,4 +1,5 @@
-# ORM модели
+"""Модели данных, которыми обмениваются приложение и слой БД."""
+
 from dataclasses import dataclass
 from typing import Literal
 
@@ -24,6 +25,37 @@ class AnalysisRunModel:
     analysis_result_id: str = ""
 
 
+@dataclass(frozen=True)
+class AnalysisResultRecord:
+    run_id: str
+    image_id: str
+    model_id: str
+    params_id: str
+    created_at: int
+    analysis_result_id: str
+    pore_count: int
+    porosity: float
+    area: float
+    diameter: float
+    size_distribution: str | None
+    file_path: str
+    width: int
+    height: int
+
+
+@dataclass(frozen=True)
+class HistoryRunRecord:
+    run_id: str
+    image_id: str
+    model_id: str
+    created_at: int
+    file_path: str
+    width: int
+    height: int
+    pore_count: int
+    original_image_name: str | None
+
+
 @dataclass
 class SegmentationModel:
     model_id: str
@@ -33,7 +65,7 @@ class SegmentationModel:
         "classical",
         "threshold",
     ]
-    model_path: str
+    model_path: str | None
     material: str
     image: str
     removable: bool

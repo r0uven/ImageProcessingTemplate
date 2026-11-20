@@ -2,33 +2,27 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from PIL import Image
 
 from app.config.config_loader import APP_SETTINGS
 from app.utils.pretty_image import make_pretty_image_plot
 
 
 class ImageLoader:
-    def load_image(self, file_bytes: bytes, filename: str):
-        image_settings = APP_SETTINGS["image"]
-
-        file_extension = Path(filename).suffix.lower().lstrip(".")
-
-        if file_extension not in image_settings["allowed_formats"]:
-            raise ValueError(f"Unsupported file format: {file_extension}")
+    def load_image(
+        self, file_bytes: bytes, filename: str
+    ) -> tuple[np.ndarray, Image.Image]:
+        self._validate_suffix(filename)
 
         image_array = np.frombuffer(file_bytes, np.uint8)
-
         return self._decode(image_array)
 
-    def load_image_from_path(self, file_path: str | Path):
+    def load_image_from_path(
+        self, file_path: str | Path
+    ) -> tuple[np.ndarray, Image.Image]:
         """Загружает изображение напрямую с диска, не передавая байты через API."""
-        image_settings = APP_SETTINGS["image"]
-
         path = Path(file_path)
-        file_extension = path.suffix.lower().lstrip(".")
-
-        if file_extension not in image_settings["allowed_formats"]:
-            raise ValueError(f"Unsupported file format: {file_extension}")
+        self._validate_suffix(path)
 
         try:
             # np.fromfile корректно работает с не-ASCII путями на Windows.
@@ -39,7 +33,13 @@ class ImageLoader:
         return self._decode(image_array)
 
     @staticmethod
-    def _decode(image_array: np.ndarray):
+    def _validate_suffix(filename: str | Path) -> None:
+        file_extension = Path(filename).suffix.lower().lstrip(".")
+        if file_extension not in APP_SETTINGS["image"]["allowed_formats"]:
+            raise ValueError(f"Unsupported file format: {file_extension}")
+
+    @staticmethod
+    def _decode(image_array: np.ndarray) -> tuple[np.ndarray, Image.Image]:
         image_settings = APP_SETTINGS["image"]
 
         original_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
