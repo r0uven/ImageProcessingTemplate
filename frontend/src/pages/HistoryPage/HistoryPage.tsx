@@ -1,53 +1,36 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import * as S from "./HistoryPage.styled.tsx";
 import { compareAsc, compareDesc, parse } from "date-fns";
 import { getHistory } from "@/api/history/getHistory";
+import type { HistoryItemResponse } from "@/api/history/getHistory";
 import { deleteHistoryItem } from "@/api/history/deleteHistoryItem";
+import { buildMediaUrl } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import TrashSVG from "@/assets/TrashSVG.svg?react";
-
-interface ProcessingHistoryItem {
-  id: string;
-
-  filename: string;
-
-  modelName: string;
-
-  createdAt: string;
-
-  duration: number;
-
-  width: number;
-
-  height: number;
-
-  status: "SUCCESS" | "FAILED";
-  previewUrl: string;
-}
 
 export const HistoryPage = () => {
   const navigate = useNavigate();
 
-  const [history, setHistory] = useState<ProcessingHistoryItem[]>([]);
-
-  const [loading, setLoading] = useState(true);
+  const { data: history, setData: setHistory, loading, error } =
+    useAsyncData<HistoryItemResponse[]>(getHistory);
 
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("");
+  const [sort, setSort] = useState<"date-desc" | "date-asc" | "name" | "duration">("date-desc");
 
   const [filter, setFilter] = useState<"ALL" | "SUCCESS" | "FAILED">("ALL");
 
   const [pendingDelete, setPendingDelete] =
-    useState<ProcessingHistoryItem | null>(null);
+    useState<HistoryItemResponse | null>(null);
 
   const [isDeleting, setIsDeleting] = useState(false);
 
   const parseHistoryDate = (date: string) =>
     parse(date, "dd.MM.yyyy HH:mm", new Date());
 
-  const filteredHistory = [...history]
+  const filteredHistory = (history ?? [])
     .filter((item) => {
       const matchesSearch = item.filename
         .toLowerCase()
@@ -76,60 +59,20 @@ export const HistoryPage = () => {
 
         case "duration":
           return a.duration - b.duration;
-
-        default:
-          return 0;
       }
     });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        const items = await getHistory();
-
-        if (cancelled) return;
-
-        setHistory(
-          items.map((item) => ({
-            id: item.run_id,
-            filename: item.filename,
-            modelName: item.modelName,
-            createdAt: item.createdAt,
-            duration: item.duration,
-            width: item.width,
-            height: item.height,
-            status: item.status,
-            previewUrl: item.previewUrl,
-          })),
-        );
-      } catch (error) {
-        console.error(error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function handleDelete() {
     if (!pendingDelete) return;
 
-    const runId = pendingDelete.id;
+    const runId = pendingDelete.run_id;
 
     try {
       setIsDeleting(true);
 
       await deleteHistoryItem(runId);
 
-      setHistory((prev) => prev.filter((item) => item.id !== runId));
+      setHistory((prev) => prev?.filter((item) => item.run_id !== runId) ?? null);
       setPendingDelete(null);
     } catch (error) {
       console.error("Ошибка удаления записи истории:", error);
@@ -150,6 +93,8 @@ export const HistoryPage = () => {
       </S.Page>
     );
   }
+
+  const hasHistory = (history?.length ?? 0) > 0;
 
   return (
     <S.Page>
@@ -196,7 +141,7 @@ export const HistoryPage = () => {
 
             <S.SortSelect
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
             >
               <option value="date-desc">Сначала новые</option>
               <option value="date-asc">Сначала старые</option>
@@ -205,24 +150,27 @@ export const HistoryPage = () => {
             </S.SortSelect>
           </S.RightControls>
         </S.Toolbar>
-        {history.length === 0 && (
+        {!hasHistory && (
           <S.EmptyState>
-            <S.EmptyText>История обработок пока пуста</S.EmptyText>
+            <S.EmptyText>
+              {error
+                ? "Не удалось загрузить историю. Проверьте консоль."
+                : "История обработок пока пуста"}
+            </S.EmptyText>
+          </S.EmptyState>
+        )}
+
+        {hasHistory && filteredHistory.length === 0 && (
+          <S.EmptyState>
+            <S.EmptyText>По заданным условиям ничего не найдено</S.EmptyText>
           </S.EmptyState>
         )}
 
         <S.CardsContainer>
           {filteredHistory.map((item) => (
-            <S.Card key={item.id}>
+            <S.Card key={item.run_id}>
               <S.ImagePreview>
-                <img
-                  src={
-                    item.previewUrl
-                      ? `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001"}${item.previewUrl}`
-                      : ""
-                  }
-                  alt=""
-                />
+                <img src={buildMediaUrl(item.previewUrl) ?? ""} alt="" />
               </S.ImagePreview>
 
               <S.CardContent>
@@ -270,7 +218,9 @@ export const HistoryPage = () => {
                 </S.InfoGrid>
 
                 <S.Actions>
-                  <S.ViewButton onClick={() => navigate(`/history/${item.id}`)}>
+                  <S.ViewButton
+                    onClick={() => navigate(`/metrics/${item.run_id}`)}
+                  >
                     Просмотреть результат
                   </S.ViewButton>
                 </S.Actions>

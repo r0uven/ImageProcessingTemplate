@@ -1,5 +1,3 @@
-// CreateAiPage.styles.ts
-
 import styled from "styled-components";
 
 export const Page = styled.div`
@@ -327,18 +325,4 @@ export const CreateButton = styled.button`
 
     background: #4c87ff;
   }
-`;
-
-export const BackButton = styled.button`
-  border: none;
-
-  background: rgba(255, 255, 255, 0.05);
-
-  color: white;
-
-  padding: 12px 18px;
-
-  border-radius: 14px;
-
-  cursor: pointer;
 `;

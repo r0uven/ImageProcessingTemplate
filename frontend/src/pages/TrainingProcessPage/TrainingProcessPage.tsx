@@ -29,6 +29,17 @@ import {
   Value,
 } from "./TrainingProcessPage.styled";
 
+type TrainingStatus = "TRAINING" | "COMPLETED" | "FAILED";
+
+type TrainingProgress = {
+  epoch: number;
+  loss: number;
+  accuracy: number;
+  logs: string[];
+};
+
+const TOTAL_EPOCHS = 100;
+
 export const TrainingProcessPage = () => {
   const navigate = useNavigate();
 
@@ -38,48 +49,48 @@ export const TrainingProcessPage = () => {
     navigate(`/training/${id}/result`);
   };
 
-  const [status, setStatus] = useState<
-    "PENDING" | "TRAINING" | "COMPLETED" | "FAILED"
-  >("PENDING");
-
-  const [epoch, setEpoch] = useState(0);
-  const [totalEpochs] = useState(100);
-
-  const [loss, setLoss] = useState(1.0);
-  const [accuracy, setAccuracy] = useState(0);
-
-  const [logs, setLogs] = useState<string[]>([]);
-
   // имитация обучения ( TODO: заменить на websocket)
-  useEffect(() => {
-    setStatus("TRAINING");
+  const [training, setTraining] = useState<TrainingProgress>({
+    epoch: 0,
+    loss: 1.0,
+    accuracy: 0,
+    logs: [],
+  });
 
+  useEffect(() => {
     const interval = setInterval(() => {
-      setEpoch((prev) => {
-        if (prev >= totalEpochs) {
-          setStatus("COMPLETED");
-          clearInterval(interval);
+      setTraining((prev) => {
+        if (prev.epoch >= TOTAL_EPOCHS) {
+          // Достигнут конец обучения: состояние не меняется, React
+          // пропускает лишний рендер. Интервал остановится при размонтировании.
           return prev;
         }
 
-        const next = prev + 1;
+        const epoch = prev.epoch + 1;
+        const loss = Math.max(0.05, prev.loss - Math.random() * 0.02);
+        const accuracy = Math.min(0.99, prev.accuracy + Math.random() * 0.01);
 
-        setLoss((l) => Math.max(0.05, l - Math.random() * 0.02));
-        setAccuracy((a) => Math.min(0.99, a + Math.random() * 0.01));
-
-        setLogs((prev) => [
-          `[Epoch ${next}] loss=${(loss - 0.01).toFixed(4)} acc=${accuracy.toFixed(3)}`,
-          ...prev,
-        ]);
-
-        return next;
+        return {
+          epoch,
+          loss,
+          accuracy,
+          logs: [
+            `[Epoch ${epoch}] loss=${(loss - 0.01).toFixed(4)} acc=${accuracy.toFixed(3)}`,
+            ...prev.logs,
+          ],
+        };
       });
     }, 20);
 
     return () => clearInterval(interval);
-  }, [accuracy, loss, totalEpochs]);
+  }, []);
 
-  const progress = (epoch / totalEpochs) * 100;
+  const { epoch, loss, accuracy, logs } = training;
+
+  const status: TrainingStatus =
+    epoch >= TOTAL_EPOCHS ? "COMPLETED" : "TRAINING";
+
+  const progress = (epoch / TOTAL_EPOCHS) * 100;
 
   return (
     <Page>
@@ -106,7 +117,7 @@ export const TrainingProcessPage = () => {
 
               <ProgressInfo>
                 <span>
-                  Эпоха: {epoch} / {totalEpochs}
+                  Эпоха: {epoch} / {TOTAL_EPOCHS}
                 </span>
                 <span>{progress.toFixed(1)}%</span>
               </ProgressInfo>
@@ -150,7 +161,7 @@ export const TrainingProcessPage = () => {
 
               <InfoRow>
                 <span>Эпохи</span>
-                <strong>{totalEpochs}</strong>
+                <strong>{TOTAL_EPOCHS}</strong>
               </InfoRow>
 
               <InfoRow>

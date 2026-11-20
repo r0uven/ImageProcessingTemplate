@@ -1,9 +1,11 @@
-import type { ProcessingMetrics } from "@/pages/VisualizeMetricsPage/types";
+import type { ProcessingMetrics } from "../types";
 import { client } from "../client";
 
-export async function getProcessingMetrics(id: string) {
+export async function getProcessingMetrics(
+  runId: string,
+): Promise<ProcessingMetrics> {
   const { data } = await client.get<ProcessingMetrics>(
-    `/analysis/${id}/metrics`,
+    `/analysis/${runId}/metrics`,
   );
 
   return data;

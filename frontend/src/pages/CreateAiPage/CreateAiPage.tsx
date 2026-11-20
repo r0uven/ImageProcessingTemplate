@@ -1,6 +1,5 @@
-// CreateAiPage.tsx
-
-import { type ChangeEvent, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Title,
@@ -41,7 +40,9 @@ import { validateMask } from "./utils/validateMask";
 interface DatasetPair {
   id: string;
   original?: File;
+  originalUrl?: string;
   mask?: File;
+  maskUrl?: string;
 }
 
 export const CreateAiPage = () => {
@@ -60,6 +61,28 @@ export const CreateAiPage = () => {
     },
   ]);
 
+  // Ссылка на актуальный список пар — нужна, чтобы при размонтировании
+  // страницы освободить object URL загруженных файлов.
+  const datasetPairsRef = useRef(datasetPairs);
+
+  useEffect(() => {
+    datasetPairsRef.current = datasetPairs;
+  }, [datasetPairs]);
+
+  useEffect(() => {
+    return () => {
+      for (const pair of datasetPairsRef.current) {
+        if (pair.originalUrl) {
+          URL.revokeObjectURL(pair.originalUrl);
+        }
+
+        if (pair.maskUrl) {
+          URL.revokeObjectURL(pair.maskUrl);
+        }
+      }
+    };
+  }, []);
+
   const updateOriginal = (
     pairId: string,
     event: ChangeEvent<HTMLInputElement>,
@@ -70,12 +93,21 @@ export const CreateAiPage = () => {
       return;
     }
 
+    const target = datasetPairs.find((pair) => pair.id === pairId);
+
+    if (target?.originalUrl) {
+      URL.revokeObjectURL(target.originalUrl);
+    }
+
+    const url = URL.createObjectURL(file);
+
     setDatasetPairs((prev) =>
       prev.map((pair) =>
         pair.id === pairId
           ? {
               ...pair,
               original: file,
+              originalUrl: url,
             }
           : pair,
       ),
@@ -99,12 +131,21 @@ export const CreateAiPage = () => {
       return;
     }
 
+    const target = datasetPairs.find((pair) => pair.id === pairId);
+
+    if (target?.maskUrl) {
+      URL.revokeObjectURL(target.maskUrl);
+    }
+
+    const url = URL.createObjectURL(file);
+
     setDatasetPairs((prev) => {
       const updated = prev.map((pair) =>
         pair.id === pairId
           ? {
               ...pair,
               mask: file,
+              maskUrl: url,
             }
           : pair,
       );
@@ -121,7 +162,7 @@ export const CreateAiPage = () => {
     });
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     const completedPairs = datasetPairs.filter(
       (pair) => pair.original && pair.mask,
     );
@@ -135,15 +176,6 @@ export const CreateAiPage = () => {
       alert("Добавьте хотя бы одну пару изображений");
       return;
     }
-
-    console.log({
-      name,
-      description,
-      epochs,
-      batchSize,
-      learningRate,
-      datasetPairs: completedPairs,
-    });
 
     navigate("/neural-networks/temp-id/training");
   };
@@ -255,9 +287,7 @@ export const CreateAiPage = () => {
                             />
                           </UploadArea>
                         ) : (
-                          <PreviewImage
-                            src={URL.createObjectURL(pair.original)}
-                          />
+                          <PreviewImage src={pair.originalUrl} />
                         )}
                       </div>
 
@@ -277,7 +307,7 @@ export const CreateAiPage = () => {
                         )}
 
                         {pair.mask && (
-                          <PreviewImage src={URL.createObjectURL(pair.mask)} />
+                          <PreviewImage src={pair.maskUrl} />
                         )}
                       </div>
                     </UploadGrid>

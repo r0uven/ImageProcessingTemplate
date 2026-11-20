@@ -1,98 +1,5 @@
 import styled from "styled-components";
 
-export const ImageContainer = styled.div`
-  position: relative;
-
-  width: 100%;
-
-  aspect-ratio: 1;
-
-  border-radius: 18px;
-
-  overflow: hidden;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
-  transition: 0.25s ease;
-
-  img {
-    width: 100%;
-
-    height: 100%;
-
-    object-fit: contain;
-
-    user-select: none;
-
-    pointer-events: none;
-  }
-`;
-
-export const SwitchContainer = styled.div`
-  display: flex;
-
-  gap: 8px;
-
-  padding: 4px;
-
-  border-radius: 14px;
-
-  background: rgba(255, 255, 255, 0.04);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-export const SwitchButton = styled.button<{
-  active: boolean;
-}>`
-  flex: 1;
-
-  height: 42px;
-
-  border: none;
-
-  border-radius: 10px;
-
-  cursor: pointer;
-
-  font-size: 14px;
-
-  font-weight: 600;
-
-  transition: all 0.2s ease;
-
-  color: ${({ active }) => (active ? "white" : "rgba(255,255,255,0.55)")};
-
-  background: ${({ active }) => (active ? "#3a7afe" : "transparent")};
-
-  &:hover {
-    color: white;
-
-    background: ${({ active }) =>
-      active ? "#4b88ff" : "rgba(255,255,255,0.06)"};
-  }
-`;
-
-export const Caption = styled.div`
-  text-align: center;
-
-  font-size: 13px;
-
-  color: rgba(255, 255, 255, 0.55);
-
-  line-height: 1.4;
-
-  min-height: 18px;
-`;
-
 export const CardTitle = styled.h2`
   margin: 0;
 
@@ -218,11 +125,6 @@ export const ImageCounter = styled.div`
   font-size: 15px;
 
   color: rgba(255, 255, 255, 0.6);
-`;
-export const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 `;
 
 export const Labels = styled.div`

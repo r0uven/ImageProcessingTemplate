@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.database.repositories.analysis_repository import AnalysisRepository
@@ -28,7 +28,7 @@ def list_history(
                 "modelName": model_names.get(run.model_id, run.model_id),
                 "createdAt": datetime.fromtimestamp(
                     run.created_at,
-                    tz=timezone.utc,  # noqa: UP017
+                    tz=UTC,
                 ).strftime("%d.%m.%Y %H:%M"),
                 "duration": 0.0,  # пока не сохраняется в БД
                 "width": run.width,
