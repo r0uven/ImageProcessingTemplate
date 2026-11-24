@@ -78,6 +78,26 @@ export const OpenLink = styled.a`
   }
 `;
 
+export const OpenLinkDisabled = styled.span`
+  padding: 7px 11px;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: rgba(255, 255, 255, 0.38);
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: not-allowed;
+
+  user-select: none;
+`;
+
 export const Viewer = styled.div`
   display: flex;
 
