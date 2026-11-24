@@ -16,9 +16,20 @@ def analysis_response(
     width: int,
     height: int,
     detected_objects: int,
+    available_images: set[str] | None = None,
 ) -> dict:
-    """Формирует ответ как для нового запуска, так и для кэшированного."""
+    """Формирует ответ как для нового запуска, так и для кэшированного.
+
+    ``available_images`` ограничивает ссылки теми изображениями, которые
+    реально сохраняются согласно разделу ``analysis_pipeline``.
+    """
     images_url = f"/analysis/{run_id}/images"
+
+    def image_url(name: str) -> str | None:
+        if available_images is not None and name not in available_images:
+            return None
+        return f"{images_url}/{name}"
+
     return {
         "status": "success",
         "run_id": run_id,
@@ -26,8 +37,8 @@ def analysis_response(
         "width": width,
         "height": height,
         "detected_objects": detected_objects,
-        "preprocessed_image": f"{images_url}/preprocessed",
-        "segmentation_mask": f"{images_url}/segmentation",
-        "postprocessed_mask": f"{images_url}/postprocessed",
-        "detection_overlay": f"{images_url}/overlay",
+        "preprocessed_image": image_url("preprocessed"),
+        "segmentation_mask": image_url("segmentation"),
+        "postprocessed_mask": image_url("postprocessed"),
+        "detection_overlay": image_url("overlay"),
     }

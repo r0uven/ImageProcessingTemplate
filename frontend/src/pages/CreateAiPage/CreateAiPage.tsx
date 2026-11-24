@@ -36,6 +36,7 @@ import {
   UploadTitle,
 } from "./CreateAiPage.styled";
 import { validateMask } from "./utils/validateMask";
+import { useAppSettings } from "@/settings/SettingsContext";
 
 interface DatasetPair {
   id: string;
@@ -45,15 +46,29 @@ interface DatasetPair {
   maskUrl?: string;
 }
 
+function hasAllowedExtension(filename: string, formats: string[]): boolean {
+  const lower = filename.toLowerCase();
+  return formats.some((format) => lower.endsWith(format.toLowerCase()));
+}
+
 export const CreateAiPage = () => {
   const navigate = useNavigate();
+  const { settings } = useAppSettings();
+
+  const trainingSettings = settings.training;
+  const trainingParams = trainingSettings.training_params;
+
+  const imageFormats = trainingSettings.allowed_image_formats;
+  const maskFormats = trainingSettings.allowed_mask_formats;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  const [epochs, setEpochs] = useState(100);
-  const [batchSize, setBatchSize] = useState(8);
-  const [learningRate, setLearningRate] = useState(0.001);
+  const [epochs, setEpochs] = useState(trainingParams.epochs ?? 100);
+  const [batchSize, setBatchSize] = useState(trainingParams.batch_size ?? 8);
+  const [learningRate, setLearningRate] = useState(
+    trainingParams.learning_rate ?? 0.001,
+  );
 
   const [datasetPairs, setDatasetPairs] = useState<DatasetPair[]>([
     {
@@ -93,6 +108,14 @@ export const CreateAiPage = () => {
       return;
     }
 
+    if (!hasAllowedExtension(file.name, imageFormats)) {
+      alert(
+        `Недопустимый формат изображения. Разрешены: ${imageFormats.join(", ")}`,
+      );
+      event.target.value = "";
+      return;
+    }
+
     const target = datasetPairs.find((pair) => pair.id === pairId);
 
     if (target?.originalUrl) {
@@ -124,14 +147,27 @@ export const CreateAiPage = () => {
       return;
     }
 
-    const isValid = await validateMask(file);
-
-    if (!isValid) {
-      alert("Эталонная маска должна быть черно-белым изображением.");
+    if (!hasAllowedExtension(file.name, maskFormats)) {
+      alert(
+        `Недопустимый формат маски. Разрешены: ${maskFormats.join(", ")}`,
+      );
+      event.target.value = "";
       return;
     }
 
     const target = datasetPairs.find((pair) => pair.id === pairId);
+
+    const isValid = await validateMask(
+      file,
+      trainingSettings.validate_image_mask_size ? target?.original : undefined,
+    );
+
+    if (!isValid) {
+      alert(
+        "Эталонная маска должна быть черно-белым изображением того же размера, что и исходное.",
+      );
+      return;
+    }
 
     if (target?.maskUrl) {
       URL.revokeObjectURL(target.maskUrl);
@@ -280,7 +316,7 @@ export const CreateAiPage = () => {
 
                             <HiddenInput
                               type="file"
-                              accept="image/*"
+                              accept={imageFormats.join(",")}
                               onChange={(event) =>
                                 updateOriginal(pair.id, event)
                               }
@@ -300,7 +336,7 @@ export const CreateAiPage = () => {
 
                             <HiddenInput
                               type="file"
-                              accept="image/*"
+                              accept={maskFormats.join(",")}
                               onChange={(event) => updateMask(pair.id, event)}
                             />
                           </UploadArea>

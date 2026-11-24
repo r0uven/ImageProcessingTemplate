@@ -2,11 +2,26 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.config.config_loader import APP_SETTINGS
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.tool_repository import ToolRepository
 from app.storage.image_storage import ImageStorage
 
 logger = logging.getLogger(__name__)
+
+
+def _preview_image_type() -> str | None:
+    """Выбирает тип картинки для превью истории с учётом analysis_pipeline."""
+    settings = APP_SETTINGS["analysis_pipeline"]
+    if settings["save_final_objects"]:
+        return "overlay"
+    if settings["save_postprocessed_mask"]:
+        return "postprocessed"
+    if settings["save_segmentation_mask"]:
+        return "segmentation"
+    if settings["save_intermediate_results"]:
+        return "preprocessed"
+    return None
 
 
 def list_history(
@@ -19,6 +34,7 @@ def list_history(
     }
 
     history = []
+    preview_type = _preview_image_type()
     for run in analysis_repository.get_all_runs():
         history.append(
             {
@@ -34,7 +50,11 @@ def list_history(
                 "width": run.width,
                 "height": run.height,
                 "status": "SUCCESS",  # пока не сохраняется в БД
-                "previewUrl": f"/analysis/{run.run_id}/images/overlay",
+                "previewUrl": (
+                    f"/analysis/{run.run_id}/images/{preview_type}"
+                    if preview_type is not None
+                    else None
+                ),
             }
         )
 

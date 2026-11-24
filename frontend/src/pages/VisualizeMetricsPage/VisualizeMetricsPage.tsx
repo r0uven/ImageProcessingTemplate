@@ -7,6 +7,8 @@ import type { DistributionType } from "@/api/types";
 import { getProcessingMetrics } from "@/api/metrics/getMetrics";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { clearAllWorkspaceStates } from "@/pages/WorkspacePage/workspaceStore";
+import { AnalysisImagesCard } from "./widgets/AnalysisImagesCard";
+import { SettingsUsedCard } from "./widgets/SettingsUsedCard";
 
 const DISTRIBUTION_TITLES: Record<DistributionType, string> = {
   PORE_SIZE: "Размер пор",
@@ -105,6 +107,10 @@ export const ProcessingMetricsPage = () => {
           </S.ImageInfoCard>
         </S.Header>
 
+        <AnalysisImagesCard images={metrics.images} />
+
+        <SettingsUsedCard data={metrics.settingsUsed} />
+
         <S.ChartCard>
           <S.CardTitle>Распределение характеристик</S.CardTitle>
 
@@ -115,7 +121,7 @@ export const ProcessingMetricsPage = () => {
               return (
                 <S.ModeButton
                   key={distributionType}
-                  active={selectedDistribution === distributionType}
+                  $active={selectedDistribution === distributionType}
                   onClick={() => setSelectedDistribution(distributionType)}
                 >
                   {value}

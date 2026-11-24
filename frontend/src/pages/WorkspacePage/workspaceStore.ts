@@ -1,7 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-import settings from "../../../../backend/app/config/settings.json";
-
+import type { AppSettings } from "@/api/settings/settings.api";
 import type { UploadResponse } from "@/api/types";
 import type { ProcessingSettingsState } from "./widgets/ProcessingSettings";
 
@@ -28,7 +27,7 @@ export type WorkspaceState = {
 const STORAGE_PREFIX = "workspace-state-v1:";
 const DEFAULT_KEY = "default";
 
-function createDefaultSettings(): ProcessingSettingsState {
+function createDefaultSettings(settings: AppSettings): ProcessingSettingsState {
   return {
     preprocessing: {
       denoise: settings.preprocessing.denoise,
@@ -81,7 +80,7 @@ function createDefaultSettings(): ProcessingSettingsState {
   };
 }
 
-function createDefaultState(): WorkspaceState {
+function createDefaultState(settings: AppSettings): WorkspaceState {
   return {
     mode: "original",
     viewerState: {
@@ -89,7 +88,7 @@ function createDefaultState(): WorkspaceState {
       processed: null,
       annotated: null,
     },
-    processingSettings: createDefaultSettings(),
+    processingSettings: createDefaultSettings(settings),
     runId: null,
     runFingerprint: null,
   };
@@ -114,7 +113,7 @@ function storageKey(key: string): string {
   return `${STORAGE_PREFIX}${key}`;
 }
 
-function readFromStorage(key: string): WorkspaceState | null {
+function readFromStorage(key: string, settings: AppSettings): WorkspaceState | null {
   try {
     const raw = sessionStorage.getItem(storageKey(key));
     if (!raw) return null;
@@ -122,7 +121,7 @@ function readFromStorage(key: string): WorkspaceState | null {
     const parsed = JSON.parse(raw) as Partial<WorkspaceState> | null;
     if (!parsed) return null;
 
-    const defaults = createDefaultState();
+    const defaults = createDefaultState(settings);
 
     return {
       ...defaults,
@@ -147,13 +146,16 @@ function notify(key: string): void {
   listeners.get(key)?.forEach((listener) => listener());
 }
 
-export function getWorkspaceState(toolId?: string): WorkspaceState {
+export function getWorkspaceState(
+  toolId: string | undefined,
+  settings: AppSettings,
+): WorkspaceState {
   const key = toolId ?? DEFAULT_KEY;
   const cached = stateCache.get(key);
 
   if (cached) return cached;
 
-  const state = readFromStorage(key) ?? createDefaultState();
+  const state = readFromStorage(key, settings) ?? createDefaultState(settings);
   stateCache.set(key, state);
 
   return state;
@@ -183,9 +185,10 @@ export function subscribeWorkspaceState(
 
 export function updateWorkspaceState(
   key: string,
+  settings: AppSettings,
   updater: (previous: WorkspaceState) => WorkspaceState,
 ): void {
-  const next = updater(getWorkspaceState(key));
+  const next = updater(getWorkspaceState(key, settings));
 
   stateCache.set(key, next);
   persist(key, next);
@@ -218,7 +221,7 @@ export function clearAllWorkspaceStates(): void {
   const keys = new Set([...stateCache.keys(), ...storedKeys()]);
 
   for (const key of keys) {
-    stateCache.set(key, createDefaultState());
+    stateCache.delete(key);
 
     try {
       sessionStorage.removeItem(storageKey(key));
@@ -235,7 +238,10 @@ export function clearAllWorkspaceStates(): void {
  * возврат по истории (например, с экрана характеристик) не сбрасывает
  * загруженное изображение, настройки и результат обработки.
  */
-export function useWorkspaceState(toolId: string | undefined) {
+export function useWorkspaceState(
+  toolId: string | undefined,
+  settings: AppSettings,
+) {
   const key = toolId ?? DEFAULT_KEY;
 
   const subscribe = useCallback(
@@ -245,14 +251,14 @@ export function useWorkspaceState(toolId: string | undefined) {
 
   const state = useSyncExternalStore(
     subscribe,
-    () => getWorkspaceState(key),
-    () => getWorkspaceState(key),
+    () => getWorkspaceState(key, settings),
+    () => getWorkspaceState(key, settings),
   );
 
   const update = useCallback(
     (updater: (previous: WorkspaceState) => WorkspaceState) =>
-      updateWorkspaceState(key, updater),
-    [key],
+      updateWorkspaceState(key, settings, updater),
+    [key, settings],
   );
 
   return { state, update };

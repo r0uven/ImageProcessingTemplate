@@ -12,10 +12,10 @@ export interface AnalysisResponse extends ImageResponse {
   status: string;
   run_id: string;
   detected_objects: number;
-  preprocessed_image: string;
-  segmentation_mask: string;
-  postprocessed_mask: string;
-  detection_overlay: string;
+  preprocessed_image: string | null;
+  segmentation_mask: string | null;
+  postprocessed_mask: string | null;
+  detection_overlay: string | null;
 }
 
 // Backend schema: AnalyzeRequest
@@ -92,9 +92,43 @@ export type DistributionStatistics = {
   standardDeviation: number;
 };
 
+export type SettingsSnapshotValue =
+  | string
+  | number
+  | boolean
+  | null
+  | SettingsSnapshotValue[]
+  | { [key: string]: SettingsSnapshotValue };
+
+export type SettingsSnapshotSection = {
+  [key: string]: SettingsSnapshotValue;
+};
+
+// Backend: снимок настроек, которые повлияли на запуск анализа.
+export interface SettingsUsed {
+  version: number;
+  request: Record<string, SettingsSnapshotSection>;
+  global: Record<string, SettingsSnapshotSection> | null;
+  complete: boolean;
+}
+
+export type AnalysisImageType =
+  | "original"
+  | "preprocessed"
+  | "segmentation"
+  | "postprocessed"
+  | "overlay";
+
+export interface AnalysisImage {
+  type: AnalysisImageType;
+  url: string;
+}
+
 export interface ProcessingMetrics {
   filename: string;
   detectedObjects: number;
+  settingsUsed: SettingsUsed | null;
+  images: AnalysisImage[];
   distributions: Record<DistributionType, DistributionPoint[]>;
   statistics: Record<DistributionType, DistributionStatistics>;
 }

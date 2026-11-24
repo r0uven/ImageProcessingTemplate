@@ -10,6 +10,7 @@ import { CreateAiPage } from "@/pages/CreateAiPage/CreateAiPage";
 import { TrainingProcessPage } from "@/pages/TrainingProcessPage/TrainingProcessPage";
 import { TrainingResultPage } from "@/pages/TrainingResultPage/TrainingResultPage";
 import { ProcessingMetricsPage } from "@/pages/VisualizeMetricsPage/VisualizeMetricsPage";
+import { SettingsPage } from "@/pages/SettingsPage/SettingsPage";
 
 export function AppRouter() {
   return (
@@ -29,6 +30,7 @@ export function AppRouter() {
         />
         <Route path="/training/:id/result" element={<TrainingResultPage />} />
         <Route path="/metrics/:runId" element={<ProcessingMetricsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>
   );

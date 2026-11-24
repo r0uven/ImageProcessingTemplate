@@ -91,6 +91,16 @@ export const HistoryButton = styled.button`
   }
 `;
 
+export const HeaderActions = styled.div`
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  flex-wrap: wrap;
+`;
+
 export const CardsGrid = styled.div`
   display: grid;
 

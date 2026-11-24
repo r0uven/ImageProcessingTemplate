@@ -15,7 +15,13 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from app.config.config_loader import APP_SETTINGS
+from app.config.config_loader import (
+    APP_SETTINGS,
+    BASE_DIR,
+    DEFAULT_IMAGES_DIRECTORY,
+    resolve_images_directory,
+)
+from app.utils.image_processing import apply_image_settings
 
 T = TypeVar("T")
 
@@ -28,8 +34,20 @@ DEFAULT_CLEANUP_MAX_DELETIONS = 25
 
 # Регулярное выражение для проверки безопасных имен файлов/ID (предотвращает path traversal и некорректные символы)
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
-# Множество разрешенных расширений для оригиналов изображений
-_ALLOWED_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
+# Резервный набор расширений, если настройки недоступны.
+_FALLBACK_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
+
+
+def _allowed_suffixes() -> set[str]:
+    """Разрешённые расширения оригиналов берутся из settings.json."""
+    formats = APP_SETTINGS.get("image", {}).get("allowed_formats", [])
+    suffixes = {
+        f".{str(item).strip().lower().lstrip('.')}"
+        for item in formats
+        if str(item).strip()
+    }
+    return suffixes or _FALLBACK_SUFFIXES
+
 
 
 class ImageStorage:
@@ -45,23 +63,19 @@ class ImageStorage:
     Превью и изображения анализа возвращаются как PIL.Image (в формате RGB).
     """
 
-    def __init__(self, base_dir: str | Path = "data/images", cache_size: int = 32):
+    def __init__(
+        self,
+        base_dir: str | Path | None = None,
+        cache_size: int = 32,
+    ):
         """
         Инициализирует хранилище изображений.
 
         Args:
-            base_dir: Корневая директория для хранения всех файлов.
+            base_dir: Корневая директория для хранения всех файлов. Если не
+                задана, берётся из ``storage.images_directory`` в settings.json.
             cache_size: Максимальное количество элементов в каждом из кэшей.
         """
-        self.base_dir = Path(base_dir).resolve()
-        self.original_dir = self.base_dir / "originals"
-        self.preview_dir = self.base_dir / "previews"
-        self.analysis_dir = self.base_dir / "analysis"
-
-        # Создаем необходимые директории, если они еще не существуют
-        for directory in (self.original_dir, self.preview_dir, self.analysis_dir):
-            directory.mkdir(parents=True, exist_ok=True)
-
         if cache_size < 1:
             raise ValueError("cache_size must be greater than zero")
         self._cache_size = cache_size
@@ -69,7 +83,71 @@ class ImageStorage:
             threading.RLock()
         )  # Рекурсивный мьютекс для потокобезопасного доступа к кэшу
 
-        storage_settings = APP_SETTINGS.get("storage", {})
+        # Все корни, из которых разрешено читать файлы. Старые корни остаются
+        # доступными после смены пути, чтобы уже сохранённые изображения и
+        # история не «пропадали».
+        self._known_base_dirs: set[Path] = set()
+        self.base_dir: Path | None = None
+        self.apply_settings(APP_SETTINGS, base_dir=base_dir, config_changed=True)
+
+        # LRU-кэши (OrderedDict) для разных типов изображений
+        self._original_cache: OrderedDict[Path, np.ndarray] = OrderedDict()
+        self._preview_cache: OrderedDict[Path, Image.Image] = OrderedDict()
+        self._analysis_cache: OrderedDict[Path, Image.Image] = OrderedDict()
+
+    def apply_settings(
+        self,
+        settings: dict | None = None,
+        *,
+        base_dir: str | Path | None = None,
+        config_changed: bool = False,
+    ) -> None:
+        """Применяет storage.* настройки и при необходимости меняет корень."""
+        settings = settings or APP_SETTINGS
+        storage_settings = settings.get("storage", {})
+
+        target_dir = (
+            Path(base_dir)
+            if base_dir is not None
+            else resolve_images_directory(
+                storage_settings.get("images_directory")
+            )
+        )
+        target_dir = target_dir.resolve()
+
+        if target_dir != self.base_dir:
+            if self.base_dir is not None:
+                self._known_base_dirs.add(self.base_dir)
+                # Старый корень становится legacy-корнем для чтения.
+                if config_changed:
+                    logger.info(
+                        "Image storage directory changed: %s -> %s",
+                        self.base_dir,
+                        target_dir,
+                    )
+
+            self.base_dir = target_dir
+
+            if config_changed and hasattr(self, "_original_cache"):
+                with self._lock:
+                    self._original_cache.clear()
+                    self._preview_cache.clear()
+                    self._analysis_cache.clear()
+
+        # Даже после перезапуска с новым путём старый путь по умолчанию
+        # остаётся доступным для чтения уже сохранённых файлов.
+        default_root = (BASE_DIR / DEFAULT_IMAGES_DIRECTORY).resolve()
+        if default_root != self.base_dir:
+            self._known_base_dirs.add(default_root)
+
+        assert self.base_dir is not None
+        self.original_dir = self.base_dir / "originals"
+        self.preview_dir = self.base_dir / "previews"
+        self.analysis_dir = self.base_dir / "analysis"
+
+        for directory in (self.original_dir, self.preview_dir, self.analysis_dir):
+            directory.mkdir(parents=True, exist_ok=True)
+
         self.cache_max_age_seconds = (
             int(storage_settings.get("cache_max_age_days", DEFAULT_CACHE_MAX_AGE_DAYS))
             * 24
@@ -94,10 +172,6 @@ class ImageStorage:
             )
         )
 
-        # LRU-кэши (OrderedDict) для разных типов изображений
-        self._original_cache: OrderedDict[Path, np.ndarray] = OrderedDict()
-        self._preview_cache: OrderedDict[Path, Image.Image] = OrderedDict()
-        self._analysis_cache: OrderedDict[Path, Image.Image] = OrderedDict()
 
     # ------------------------------------------------------------------
     # Утилиты
@@ -142,7 +216,7 @@ class ImageStorage:
         suffix = suffix.lower()
         if not suffix.startswith("."):
             suffix = f".{suffix}"
-        if suffix not in _ALLOWED_SUFFIXES:
+        if suffix not in _allowed_suffixes():
             raise ValueError(f"Недопустимое расширение: {suffix!r}")
         return suffix
 
@@ -159,21 +233,31 @@ class ImageStorage:
 
     def _ensure_inside_base(self, file_path: str | Path) -> Path:
         """
-        Проверяет, что запрашиваемый путь физически находится внутри корневой директории
-        хранилища (защита от Path Traversal атак).
+        Проверяет, что запрашиваемый путь физически находится внутри корневой
+        директории хранилища (защита от Path Traversal атак).
+
+        После смены ``storage.images_directory`` старые корни остаются
+        доступными только для чтения уже сохранённых файлов.
         """
+        roots = {
+            root
+            for root in (self.base_dir, *self._known_base_dirs)
+            if root is not None
+        }
         raw_path = Path(file_path)
         candidates = [raw_path]
         if not raw_path.is_absolute():
             # До перехода на абсолютные пути БД сохраняла ``data/images/...``.
             # Проверяем этот legacy-путь относительно backend directory, не
             # ослабляя проверку принадлежности storage root.
-            candidates.append(self.base_dir.parent.parent / raw_path)
+            for root in roots:
+                candidates.append(root.parent.parent / raw_path)
 
         for candidate in candidates:
             path = candidate.resolve()
-            if self.base_dir in path.parents:
-                return path
+            for root in roots:
+                if path == root or root in path.parents:
+                    return path
 
         raise ValueError(f"Путь вне хранилища: {file_path}")
 
@@ -281,7 +365,12 @@ class ImageStorage:
         # cv2.imdecode корректно работает с не-ASCII путями на Windows (в отличие от cv2.imread).
         # IMREAD_COLOR приводит изображение к единому виду (3 канала BGR), как и при
         # загрузке. Иначе grayscale/RGBA-файлы ломают пайплайн, ожидающий BGR.
-        return cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        image = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        if image is None:
+            return None
+
+        # Те же image.* настройки (grayscale/resize_on_load), что и при загрузке.
+        return apply_image_settings(image)
 
     def get_original(self, file_path: str | Path) -> np.ndarray | None:
         """
@@ -363,6 +452,21 @@ class ImageStorage:
         self._check_name(run_id, "run_id")
         self._check_name(name, "name")
         return self.analysis_dir / run_id / f"{name}.png"
+
+    def find_analysis_image_path(self, run_id: str, name: str) -> Path | None:
+        """Ищет изображение запуска в текущем и старых корнях (только чтение)."""
+        self._check_name(run_id, "run_id")
+        self._check_name(name, "name")
+
+        for root in (self.base_dir, *self._known_base_dirs):
+            if root is None:
+                continue
+
+            path = root / "analysis" / run_id / f"{name}.png"
+            if path.is_file():
+                return path
+
+        return None
 
     def delete_analysis_images(self, run_id: str) -> int:
         """Удаляет изображения запуска вместе с его поддиректорией.

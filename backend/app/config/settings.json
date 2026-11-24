@@ -1,17 +1,36 @@
 {
   "image": {
-    "allowed_formats": ["png", "bmp", "tif", "tiff"],
-    "allowed_sizes": [
-      [512, 512],
-      [1024, 1024],
-      [2048, 2048]
+    "allowed_formats": [
+      "png",
+      "bmp",
+      "tif",
+      "tiff"
     ],
-    "default_size": [1024, 1024],
-    "grayscale": true,
-    "pixel_value_range": [0, 255],
+    "allowed_sizes": [
+      [
+        512,
+        512
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        2048,
+        2048
+      ]
+    ],
+    "default_size": [
+      1024,
+      1024
+    ],
+    "grayscale": false,
+    "pixel_value_range": [
+      0,
+      255
+    ],
     "resize_on_load": false
   },
-
   "preprocessing": {
     "denoise": true,
     "normalize": true,
@@ -20,21 +39,17 @@
     "filter_size": 3,
     "preserve_size": true
   },
-
   "segmentation": {
     "method": "threshold",
-
     "output": {
       "foreground_value": 1,
       "background_value": 0,
       "preserve_size": true
     },
-
     "threshold": {
       "threshold_value": 128,
       "invert": false
     },
-
     "neural": {
       "selected_model": null,
       "entities": {},
@@ -42,22 +57,17 @@
       "device": "cpu"
     }
   },
-
   "postprocessing": {
     "remove_small_objects": true,
     "min_object_area": 20,
-
     "fill_holes": true,
-
     "morphology": {
       "enabled": true,
       "operation": "closing",
       "kernel_size": 3
     },
-
     "preserve_size": true
   },
-
   "object_detection": {
     "connectivity": 8,
     "min_object_area": 20,
@@ -65,10 +75,8 @@
     "return_centroid": true,
     "return_object_mask": false
   },
-
   "object_classification": {
     "classification_mode": "detect_separation_candidates",
-
     "candidate_rules": {
       "max_area": null,
       "min_roundness": null,
@@ -76,7 +84,6 @@
       "min_solidity": null,
       "min_extent": null
     },
-
     "features": {
       "use_area": true,
       "use_roundness": true,
@@ -85,7 +92,6 @@
       "use_extent": true
     }
   },
-
   "pore_separation": {
     "enabled": true,
     "apply_only_to_candidates": true,
@@ -101,10 +107,8 @@
       "coverage_ratio": true,
       "extra_ratio": false
     },
-
     "algorithm_params": {}
   },
-
   "pore_merging": {
     "preserve_object_status": true,
     "preserve_parent_object_id": true,
@@ -112,9 +116,12 @@
     "include_autonomous_pores": true,
     "include_separated_objects": true,
     "include_unseparated_candidates": true,
-    "object_statuses": ["autonomous", "separated", "unseparated_candidate"]
+    "object_statuses": [
+      "autonomous",
+      "separated",
+      "unseparated_candidate"
+    ]
   },
-
   "feature_extraction": {
     "calculate_object_features": true,
     "calculate_summary_statistics": true,
@@ -124,7 +131,6 @@
     "use_status_based_feature_source": true,
     "use_scale": false,
     "scale_mm_per_pixel": null,
-
     "region_object_features": {
       "area": true,
       "perimeter": true,
@@ -134,7 +140,6 @@
       "roundness": true,
       "relative_area": true
     },
-
     "circle_object_features": {
       "center": true,
       "radius": true,
@@ -143,7 +148,6 @@
       "circumference": true,
       "relative_area": true
     },
-
     "separation_quality_metrics": {
       "covered_area": true,
       "lost_area": true,
@@ -151,7 +155,6 @@
       "coverage_ratio": true,
       "extra_ratio": false
     },
-
     "summary_statistics": {
       "total_count": true,
       "count_by_status": true,
@@ -163,7 +166,6 @@
       "size_distribution": true
     }
   },
-
   "analysis_pipeline": {
     "save_intermediate_results": true,
     "save_run_parameters": true,
@@ -174,33 +176,39 @@
     "save_final_objects": true,
     "save_features": true
   },
-
   "storage": {
+    "images_directory": "data/images",
     "cache_max_age_days": 183,
     "cache_max_total_bytes": 10737418240,
     "cleanup_interval_minutes": 30,
     "cleanup_max_deletions_per_run": 25
   },
-
   "training": {
     "dataset_pair_format": "image_mask",
     "validate_image_mask_size": true,
-    "allowed_image_formats": [".png", ".bmp", ".tif", ".tiff"],
-    "allowed_mask_formats": [".png", ".bmp", ".tif", ".tiff"],
-
+    "allowed_image_formats": [
+      ".png",
+      ".bmp",
+      ".tif",
+      ".tiff"
+    ],
+    "allowed_mask_formats": [
+      ".png",
+      ".bmp",
+      ".tif",
+      ".tiff"
+    ],
     "training_params": {
-      "epochs": null,
-      "batch_size": null,
-      "learning_rate": null,
+      "epochs": 100,
+      "batch_size": 8,
+      "learning_rate": 0.001,
       "architecture": null
     },
-
     "model_registry": {
       "save_model_file": true,
       "register_model_in_config": true,
       "models_directory": "entities"
     },
-
     "metrics": {
       "dice": true,
       "iou": true,

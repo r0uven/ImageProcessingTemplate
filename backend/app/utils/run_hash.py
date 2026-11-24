@@ -5,12 +5,13 @@ import json
 from dataclasses import asdict
 from typing import Any
 
+from app.config.config_loader import APP_SETTINGS, RESULT_SETTINGS_SECTIONS
 from app.mappers.processing_parameters_mapper import to_processing_parameters
 from app.schemas.analyze_request import AnalyzeRequest
 
 # Версия схемы хеширования. Меняется при изменении состава факторов
 # или логики обработки, чтобы старые и новые хеши не пересекались.
-HASH_VERSION = 2
+HASH_VERSION = 3
 
 
 def _serialize_parameters(parameters: AnalyzeRequest) -> dict[str, Any]:
@@ -43,7 +44,9 @@ def compute_run_hash(
     и ключ кэша. Поэтому он зависит только от того, что влияет на обработку:
     - ID исходного изображения (image_id);
     - ID используемой модели (model_id);
-    - параметров обработки (все параметры из AnalyzeRequest).
+    - параметров обработки (все параметры из AnalyzeRequest);
+    - глобальных настроек, которые не входят в запрос, но влияют на
+      результат (image, postprocessing, object_detection, feature_extraction).
 
     Результаты обработки (характеристики, маски, overlay) намеренно не входят
     в хеш: при неизменных входных данных они не меняются, а для проверки кэша
@@ -63,6 +66,9 @@ def compute_run_hash(
         "image_id": image_id,
         "model_id": model_id,
         "parameters": _serialize_parameters(parameters),
+        "global_settings": {
+            section: APP_SETTINGS[section] for section in RESULT_SETTINGS_SECTIONS
+        },
     }
 
     # Сериализуем в JSON с сортировкой ключей для консистентности

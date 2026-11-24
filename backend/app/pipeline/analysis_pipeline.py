@@ -40,8 +40,15 @@ class AnalysisPipeline:
         # Segmentation
         # =========================================================
 
+        segmentation_parameters = context.parameters.segmentation
+        if segmentation_parameters.method == "neural":
+            # Нейросети пока нет, поэтому если вдруг случится ситуация при которой будет выбран нейросетевой метод, выдастся ошибка.
+            raise ValueError(
+                "Нейросетевая сегментация недоступна: модуль инференса не подключён"
+            )
+
         segmentation_mask = self.segmenter.segment(
-            preprocessed_image, context.parameters.segmentation.threshold
+            preprocessed_image, segmentation_parameters.threshold
         )
 
         context.image_data.segmentation_mask = segmentation_mask

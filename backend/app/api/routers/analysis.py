@@ -44,9 +44,12 @@ def get_analysis_image(
     storage: StorageDep,
 ):
     try:
-        path = storage.analysis_image_path(run_id, image_type)
+        path = storage.find_analysis_image_path(run_id, image_type)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Analysis image not found") from exc
+
+    if path is None:
+        raise HTTPException(status_code=404, detail="Analysis image not found")
 
     image = storage.get_analysis_image(path)
     if image is None:
@@ -56,10 +59,14 @@ def get_analysis_image(
 
 
 @router.get("/{run_id}/metrics")
-def get_analysis_metrics(run_id: str, analysis_repository: AnalysisRepositoryDep):
+def get_analysis_metrics(
+    run_id: str,
+    analysis_repository: AnalysisRepositoryDep,
+    storage: StorageDep,
+):
     """Метрики одного запуска: распределения и статистика по порам."""
     record = analysis_repository.get_analysis_result(run_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    return build_metrics(record)
+    return build_metrics(record, storage)

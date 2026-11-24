@@ -13,16 +13,7 @@ import {
 import * as S from "./TrainingResultPage.styled";
 import { ImageComparison } from "./ImageComparison/ImageComparison";
 import type { TrainingState } from "@/types/training";
-
-// TODO заменить на backend
-
-const CHART_DATA = Array.from({ length: 100 }, (_, index) => ({
-  epoch: index + 1,
-
-  loss: Number((1 / (index * 0.15 + 1)).toFixed(3)),
-
-  accuracy: Number((60 + Math.log(index + 1) * 8).toFixed(2)),
-}));
+import { useAppSettings } from "@/settings/SettingsContext";
 
 // TODO заменить ответом backend
 
@@ -78,6 +69,22 @@ const TEST_IMAGES: TrainingState[] = [
 
 export const TrainingResultPage = () => {
   const navigate = useNavigate();
+  const { settings } = useAppSettings();
+
+  const trainingParams = settings.training.training_params;
+  const trainingMetrics = settings.training.metrics;
+
+  const totalEpochs = trainingParams.epochs ?? 100;
+  const batchSize = trainingParams.batch_size ?? 8;
+  const learningRate = trainingParams.learning_rate ?? 0.001;
+
+  const chartData = Array.from({ length: totalEpochs }, (_, index) => ({
+    epoch: index + 1,
+
+    loss: Number((1 / (index * 0.15 + 1)).toFixed(3)),
+
+    accuracy: Number((60 + Math.log(index + 1) * 8).toFixed(2)),
+  }));
 
   const handleSaveModel = () => {
     // TODO запрос на сохранение модели
@@ -111,23 +118,29 @@ export const TrainingResultPage = () => {
           качество работы на тестовой выборке.
         </S.SuccessBanner>
         <S.MetricsGrid>
-          <S.MetricCard>
-            <S.MetricTitle>Accuracy</S.MetricTitle>
+          {trainingMetrics.pixel_accuracy && (
+            <S.MetricCard>
+              <S.MetricTitle>Accuracy</S.MetricTitle>
 
-            <S.MetricValue>98.43%</S.MetricValue>
-          </S.MetricCard>
+              <S.MetricValue>98.43%</S.MetricValue>
+            </S.MetricCard>
+          )}
 
-          <S.MetricCard>
-            <S.MetricTitle>IoU</S.MetricTitle>
+          {trainingMetrics.iou && (
+            <S.MetricCard>
+              <S.MetricTitle>IoU</S.MetricTitle>
 
-            <S.MetricValue>96.82%</S.MetricValue>
-          </S.MetricCard>
+              <S.MetricValue>96.82%</S.MetricValue>
+            </S.MetricCard>
+          )}
 
-          <S.MetricCard>
-            <S.MetricTitle>Dice</S.MetricTitle>
+          {trainingMetrics.dice && (
+            <S.MetricCard>
+              <S.MetricTitle>Dice</S.MetricTitle>
 
-            <S.MetricValue>97.61%</S.MetricValue>
-          </S.MetricCard>
+              <S.MetricValue>97.61%</S.MetricValue>
+            </S.MetricCard>
+          )}
 
           <S.MetricCard>
             <S.MetricTitle>Loss</S.MetricTitle>
@@ -145,7 +158,7 @@ export const TrainingResultPage = () => {
             }}
           >
             <ResponsiveContainer>
-              <LineChart data={CHART_DATA}>
+              <LineChart data={chartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="rgba(255,255,255,0.08)"
@@ -175,6 +188,7 @@ export const TrainingResultPage = () => {
                   strokeWidth={3}
                   dot={false}
                   name="Accuracy"
+                  hide={!trainingMetrics.pixel_accuracy}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -190,19 +204,19 @@ export const TrainingResultPage = () => {
             <S.StatCard>
               <S.StatLabel>Количество эпох</S.StatLabel>
 
-              <S.StatValue>100</S.StatValue>
+              <S.StatValue>{totalEpochs}</S.StatValue>
             </S.StatCard>
 
             <S.StatCard>
               <S.StatLabel>Batch Size</S.StatLabel>
 
-              <S.StatValue>8</S.StatValue>
+              <S.StatValue>{batchSize}</S.StatValue>
             </S.StatCard>
 
             <S.StatCard>
               <S.StatLabel>Learning Rate</S.StatLabel>
 
-              <S.StatValue>0.001</S.StatValue>
+              <S.StatValue>{learningRate}</S.StatValue>
             </S.StatCard>
 
             <S.StatCard>

@@ -20,7 +20,8 @@ export const BackButton = () => {
     // для вложенных — используем историю браузера.
     if (
       location.pathname.startsWith("/workspace") ||
-      location.pathname === "/history"
+      location.pathname === "/history" ||
+      location.pathname === "/settings"
     ) {
       navigate("/");
       return;

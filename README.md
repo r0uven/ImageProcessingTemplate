@@ -13,6 +13,8 @@ cd backend //если в общей папке
 uvicorn main:app --reload
 ```
 
+Если `backend/app/config/settings.json` удалён или повреждён, backend создаст его из значений по умолчанию (`app/config/default_settings.py`). Повреждённый файл сохраняется рядом как `settings.json.broken-*`.
+
 ### Frontend (Tauri)
 
 ```bash

@@ -1,3 +1,3 @@
 export function formatToAccept(formats: string[]) {
-  return formats.map((f) => `.${f}`).join(",");
+  return formats.map((f) => `.${f.replace(/^\./, "")}`).join(",");
 }

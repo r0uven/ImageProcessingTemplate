@@ -33,12 +33,27 @@ def require_pil(image: np.ndarray | Image.Image | None, name: str) -> Image.Imag
     return to_pil(image)
 
 
-def pretty_mask(image: np.ndarray | None, name: str) -> Image.Image:
+def mask_to_uint8(
+    mask: np.ndarray,
+    foreground_value: int,
+    background_value: int,
+) -> np.ndarray:
+    """Превращает bool/числовую маску в uint8 с заданными значениями."""
+    mask_bool = mask.astype(bool) if mask.dtype != bool else mask
+    return np.where(mask_bool, foreground_value, background_value).astype(np.uint8)
+
+
+def pretty_mask(
+    image: np.ndarray | None,
+    name: str,
+    foreground_value: int = 255,
+    background_value: int = 0,
+) -> Image.Image:
     """Рендерит маску в такой же удобный вид, как превью загруженного изображения."""
     if image is None:
         raise ValueError(f"Изображение '{name}' отсутствует в результате анализа")
 
-    mask = image.astype(np.uint8) * 255 if image.dtype == bool else image
+    mask = mask_to_uint8(image, foreground_value, background_value)
 
     return make_pretty_image_plot(mask, cmap="gray")
 
