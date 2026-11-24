@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image
 
 from app.config.config_loader import APP_SETTINGS
+from app.utils.image_processing import apply_image_settings
 from app.utils.pretty_image import make_pretty_image_plot
 
 
@@ -40,17 +41,12 @@ class ImageLoader:
 
     @staticmethod
     def _decode(image_array: np.ndarray) -> tuple[np.ndarray, Image.Image]:
-        image_settings = APP_SETTINGS["image"]
-
         original_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
         if original_image is None:
             raise ValueError("Failed to decode image")
 
-        if image_settings["resize_on_load"]:
-            original_image = cv2.resize(
-                original_image, tuple(image_settings["default_size"])
-            )
+        original_image = apply_image_settings(original_image)
 
         # convert BGR → RGB for PIL
         rgb_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)

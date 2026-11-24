@@ -10,7 +10,7 @@ export interface HistoryItemResponse {
   width: number;
   height: number;
   status: "SUCCESS" | "FAILED";
-  previewUrl: string;
+  previewUrl: string | null;
 }
 
 export async function getHistory(): Promise<HistoryItemResponse[]> {

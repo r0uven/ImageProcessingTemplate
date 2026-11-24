@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
-from app.api.routers import analysis, history, images, system, tools, uploads
+from app.api.routers import analysis, history, images, settings, system, tools, uploads
 from app.database.connection import get_connection
 from app.database.migrator import run_migrations
 from app.database.repositories.analysis_repository import AnalysisRepository
@@ -28,8 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_STORAGE_DIR = Path(__file__).resolve().parent / "data" / "images"
-
 
 async def _cleanup_cache_periodically(storage: ImageStorage) -> None:
     """Постепенно удаляет самые старые превью, пока приложение работает."""
@@ -52,7 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         run_migrations(db)
 
         app.state.db = db
-        app.state.storage = ImageStorage(DEFAULT_STORAGE_DIR)
+        app.state.storage = ImageStorage()
         app.state.tool_repository = ToolRepository(db)
         app.state.analysis_repository = AnalysisRepository(db)
         app.state.image_repository = ImageRepository(db)
@@ -88,6 +86,7 @@ app.add_middleware(
 
 for router in (
     system.router,
+    settings.router,
     uploads.router,
     analysis.router,
     images.router,

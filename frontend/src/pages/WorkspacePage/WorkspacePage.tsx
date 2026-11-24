@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import TrashSVG from "@/assets/TrashSVG.svg?react";
-import settings from "../../../../backend/app/config/settings.json";
 
 import {
   Page,
@@ -42,11 +41,13 @@ import {
   type WorkspaceMode,
   type WorkspaceState,
 } from "./workspaceStore";
+import { useAppSettings } from "@/settings/SettingsContext";
 
 export function WorkspacePage() {
   const navigate = useNavigate();
   const { toolId } = useParams<{ toolId: string }>();
-  const { state, update } = useWorkspaceState(toolId);
+  const { settings } = useAppSettings();
+  const { state, update } = useWorkspaceState(toolId, settings);
 
   const { mode, viewerState, processingSettings, runId, runFingerprint } = state;
 
@@ -195,6 +196,16 @@ export function WorkspacePage() {
         ...processingSettings,
       });
 
+      // Какие изображения сохранять, решает analysis_pipeline в settings.json.
+      // Если результат отключён, показываем наиболее подходящий сохранённый.
+      const originalPreview = viewerState.original.preview_url;
+      const processedPreview =
+        result.postprocessed_mask ??
+        result.segmentation_mask ??
+        result.preprocessed_image ??
+        originalPreview;
+      const annotatedPreview = result.detection_overlay ?? processedPreview;
+
       update((prev) => ({
         ...prev,
         runId: result.run_id,
@@ -203,13 +214,13 @@ export function WorkspacePage() {
         viewerState: {
           ...prev.viewerState,
           processed: {
-            preview_url: result.postprocessed_mask,
+            preview_url: processedPreview,
             image_id: result.image_id,
             width: result.width,
             height: result.height,
           },
           annotated: {
-            preview_url: result.detection_overlay,
+            preview_url: annotatedPreview,
             image_id: result.image_id,
             width: result.width,
             height: result.height,

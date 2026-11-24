@@ -12,10 +12,10 @@ export interface AnalysisResponse extends ImageResponse {
   status: string;
   run_id: string;
   detected_objects: number;
-  preprocessed_image: string;
-  segmentation_mask: string;
-  postprocessed_mask: string;
-  detection_overlay: string;
+  preprocessed_image: string | null;
+  segmentation_mask: string | null;
+  postprocessed_mask: string | null;
+  detection_overlay: string | null;
 }
 
 // Backend schema: AnalyzeRequest

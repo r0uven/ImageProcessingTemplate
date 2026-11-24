@@ -28,6 +28,7 @@ import {
   TitleBlock,
   Value,
 } from "./TrainingProcessPage.styled";
+import { useAppSettings } from "@/settings/SettingsContext";
 
 type TrainingStatus = "TRAINING" | "COMPLETED" | "FAILED";
 
@@ -38,10 +39,11 @@ type TrainingProgress = {
   logs: string[];
 };
 
-const TOTAL_EPOCHS = 100;
-
 export const TrainingProcessPage = () => {
   const navigate = useNavigate();
+  const { settings } = useAppSettings();
+
+  const totalEpochs = settings.training.training_params.epochs ?? 100;
 
   const { id } = useParams();
 
@@ -60,7 +62,7 @@ export const TrainingProcessPage = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setTraining((prev) => {
-        if (prev.epoch >= TOTAL_EPOCHS) {
+        if (prev.epoch >= totalEpochs) {
           // Достигнут конец обучения: состояние не меняется, React
           // пропускает лишний рендер. Интервал остановится при размонтировании.
           return prev;
@@ -83,14 +85,14 @@ export const TrainingProcessPage = () => {
     }, 20);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [totalEpochs]);
 
   const { epoch, loss, accuracy, logs } = training;
 
   const status: TrainingStatus =
-    epoch >= TOTAL_EPOCHS ? "COMPLETED" : "TRAINING";
+    epoch >= totalEpochs ? "COMPLETED" : "TRAINING";
 
-  const progress = (epoch / TOTAL_EPOCHS) * 100;
+  const progress = (epoch / totalEpochs) * 100;
 
   return (
     <Page>
@@ -117,7 +119,7 @@ export const TrainingProcessPage = () => {
 
               <ProgressInfo>
                 <span>
-                  Эпоха: {epoch} / {TOTAL_EPOCHS}
+                  Эпоха: {epoch} / {totalEpochs}
                 </span>
                 <span>{progress.toFixed(1)}%</span>
               </ProgressInfo>
@@ -161,7 +163,7 @@ export const TrainingProcessPage = () => {
 
               <InfoRow>
                 <span>Эпохи</span>
-                <strong>{TOTAL_EPOCHS}</strong>
+                <strong>{totalEpochs}</strong>
               </InfoRow>
 
               <InfoRow>

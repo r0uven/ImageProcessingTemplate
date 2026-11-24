@@ -12,6 +12,7 @@ import {
   Header,
   Title,
   HistoryButton,
+  HeaderActions,
   CardsGrid,
   BottomText,
   Content,
@@ -58,13 +59,23 @@ export function LandingPage() {
         <Header>
           <Title>Анализ пористой структуры</Title>
 
-          <HistoryButton
-            onClick={() => {
-              navigate("/history");
-            }}
-          >
-            Предыдущие обработки
-          </HistoryButton>
+          <HeaderActions>
+            <HistoryButton
+              onClick={() => {
+                navigate("/settings");
+              }}
+            >
+              Настройки
+            </HistoryButton>
+
+            <HistoryButton
+              onClick={() => {
+                navigate("/history");
+              }}
+            >
+              Предыдущие обработки
+            </HistoryButton>
+          </HeaderActions>
         </Header>
 
         <CardsGrid>

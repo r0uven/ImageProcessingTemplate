@@ -1,11 +1,12 @@
 import logging
 import time
 import uuid
+from collections.abc import Iterable
 
 from fastapi import HTTPException
 
-from app.api.constants import ANALYSIS_IMAGE_NAMES
 from app.api.responses import analysis_response
+from app.config.config_loader import APP_SETTINGS
 from app.database.models import AnalysisRunModel
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.image_repository import ImageRepository
@@ -51,8 +52,9 @@ class AnalysisService:
             parameters=parameters,
         )
 
+        saved_image_names = self._saved_image_names()
         cached_run = self.analysis_repository.get_analysis_result(run_id)
-        if cached_run is not None and self._images_exist(run_id):
+        if cached_run is not None and self._images_exist(run_id, saved_image_names):
             logger.info("Analysis cache hit: image_id=%s run_id=%s", image_id, run_id)
             return analysis_response(
                 run_id=run_id,
@@ -60,6 +62,7 @@ class AnalysisService:
                 width=record.width,
                 height=record.height,
                 detected_objects=cached_run.pore_count,
+                available_images=saved_image_names,
             )
 
         image = self.storage.get_original(record.file_path)
@@ -76,24 +79,39 @@ class AnalysisService:
         analysis = result.analysis_result
 
         postprocessed_mask = result.image_data.postprocessed_mask
+        segmentation_mask = result.image_data.segmentation_mask
         if postprocessed_mask is None or result.objects is None:
             raise ValueError("Pipeline did not produce a postprocessed mask")
 
-        overlay = self.overlay_renderer.render_detection_overlay(
-            postprocessed_mask,
-            result.objects,
-        )
+        output_values = context.parameters.segmentation.output_mask
+        foreground_value = output_values.foreground_value
+        background_value = output_values.background_value
 
-        analysis_images = {
-            "preprocessed": require_pil(
+        analysis_images = {}
+        if "preprocessed" in saved_image_names:
+            analysis_images["preprocessed"] = require_pil(
                 result.image_data.preprocessed_image, "preprocessed"
-            ),
-            "segmentation": require_pil(
-                result.image_data.segmentation_mask, "segmentation"
-            ),
-            "postprocessed": pretty_mask(postprocessed_mask, "postprocessed"),
-            "overlay": require_pil(overlay, "overlay"),
-        }
+            )
+        if "segmentation" in saved_image_names:
+            analysis_images["segmentation"] = pretty_mask(
+                segmentation_mask,
+                "segmentation",
+                foreground_value=foreground_value,
+                background_value=background_value,
+            )
+        if "postprocessed" in saved_image_names:
+            analysis_images["postprocessed"] = pretty_mask(
+                postprocessed_mask,
+                "postprocessed",
+                foreground_value=foreground_value,
+                background_value=background_value,
+            )
+        if "overlay" in saved_image_names:
+            overlay = self.overlay_renderer.render_detection_overlay(
+                postprocessed_mask,
+                result.objects,
+            )
+            analysis_images["overlay"] = require_pil(overlay, "overlay")
 
         if not self.analysis_repository.run_exists(run_id):
             analysis_result_id = str(uuid.uuid4())
@@ -133,11 +151,29 @@ class AnalysisService:
             width=width,
             height=height,
             detected_objects=analysis.pore_count,
+            available_images=set(analysis_images),
         )
 
-    def _images_exist(self, run_id: str) -> bool:
+    @staticmethod
+    def _saved_image_names() -> set[str]:
+        """Какие изображения сохранять — определяется analysis_pipeline."""
+        settings = APP_SETTINGS["analysis_pipeline"]
+        names: set[str] = set()
+
+        if settings["save_intermediate_results"]:
+            names.add("preprocessed")
+        if settings["save_segmentation_mask"]:
+            names.add("segmentation")
+        if settings["save_postprocessed_mask"]:
+            names.add("postprocessed")
+        if settings["save_final_objects"]:
+            names.add("overlay")
+
+        return names
+
+    def _images_exist(self, run_id: str, names: Iterable[str]) -> bool:
         """Проверяет, что все результирующие картинки запуска есть на диске."""
         return all(
             self.storage.analysis_image_path(run_id, name).is_file()
-            for name in ANALYSIS_IMAGE_NAMES
+            for name in names
         )
