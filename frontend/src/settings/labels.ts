@@ -33,6 +33,7 @@ export const FIELD_LABELS: Record<string, string> = {
   // segmentation
   method: "Метод сегментации",
   output: "Выходная маска",
+  output_mask: "Выходная маска",
   threshold: "Пороговая сегментация",
   neural: "Нейросетевая сегментация",
   foreground_value: "Значение объекта",
@@ -40,6 +41,7 @@ export const FIELD_LABELS: Record<string, string> = {
   threshold_value: "Порог",
   invert: "Инвертировать",
   selected_model: "Выбранная модель",
+  model_id: "Модель",
   entities: "Сущности модели",
   default_confidence_threshold: "Порог уверенности",
   device: "Устройство",
@@ -122,6 +124,7 @@ export const FIELD_LABELS: Record<string, string> = {
   count_by_status: "Количество по статусам",
   total_pore_area: "Суммарная площадь пор",
   mean_area: "Средняя площадь",
+  min_area: "Минимальная площадь",
   porosity: "Пористость",
   size_distribution: "Распределение по размерам",
 

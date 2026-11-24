@@ -5,22 +5,13 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from app.config.config_loader import APP_SETTINGS
+from app.config.config_loader import APP_SETTINGS, RESULT_SETTINGS_SECTIONS
 from app.mappers.processing_parameters_mapper import to_processing_parameters
 from app.schemas.analyze_request import AnalyzeRequest
 
 # Версия схемы хеширования. Меняется при изменении состава факторов
 # или логики обработки, чтобы старые и новые хеши не пересекались.
 HASH_VERSION = 3
-
-# Глобальные секции settings.json, которые влияют на результат обработки,
-# но не приходят в AnalyzeRequest. Их изменение должно сбрасывать кэш.
-_GLOBAL_RESULT_SETTINGS = (
-    "image",
-    "postprocessing",
-    "object_detection",
-    "feature_extraction",
-)
 
 
 def _serialize_parameters(parameters: AnalyzeRequest) -> dict[str, Any]:
@@ -76,7 +67,7 @@ def compute_run_hash(
         "model_id": model_id,
         "parameters": _serialize_parameters(parameters),
         "global_settings": {
-            section: APP_SETTINGS[section] for section in _GLOBAL_RESULT_SETTINGS
+            section: APP_SETTINGS[section] for section in RESULT_SETTINGS_SECTIONS
         },
     }
 

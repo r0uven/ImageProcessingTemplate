@@ -24,7 +24,7 @@
       1024,
       1024
     ],
-    "grayscale": true,
+    "grayscale": false,
     "pixel_value_range": [
       0,
       255

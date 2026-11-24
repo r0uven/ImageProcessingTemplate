@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -17,6 +18,7 @@ from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.pipeline.pipeline_context import PipelineContext
 from app.schemas.analyze_request import AnalyzeRequest
 from app.services.image_conversion import pretty_mask, require_pil
+from app.services.run_snapshot import build_settings_snapshot
 from app.storage.image_storage import ImageStorage
 from app.utils.run_hash import compute_run_hash
 
@@ -75,6 +77,11 @@ class AnalysisService:
             parameters=to_processing_parameters(parameters),
         )
 
+        # Снимок настроек фиксируем до запуска пайплайна: страница результатов
+        # должна показывать значения, которые участвовали в обработке, даже
+        # если settings.json изменят позже.
+        settings_snapshot = self._settings_snapshot(parameters)
+
         result = self.pipeline.run(context)
         analysis = result.analysis_result
 
@@ -125,6 +132,7 @@ class AnalysisService:
                     params_id=parameters.parametersId,
                     analysis_result_id=analysis_result_id,
                     created_at=int(time.time()),
+                    settings_snapshot=settings_snapshot,
                 ),
                 parameters=parameters,
                 result=analysis,
@@ -153,6 +161,15 @@ class AnalysisService:
             detected_objects=analysis.pore_count,
             available_images=set(analysis_images),
         )
+
+    @staticmethod
+    def _settings_snapshot(parameters: AnalyzeRequest) -> str | None:
+        """Сериализует параметры запуска, если это разрешено настройками."""
+        if not APP_SETTINGS["analysis_pipeline"]["save_run_parameters"]:
+            return None
+
+        snapshot = build_settings_snapshot(parameters)
+        return json.dumps(snapshot, ensure_ascii=False, sort_keys=True)
 
     @staticmethod
     def _saved_image_names() -> set[str]:

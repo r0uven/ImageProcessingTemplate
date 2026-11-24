@@ -453,6 +453,21 @@ class ImageStorage:
         self._check_name(name, "name")
         return self.analysis_dir / run_id / f"{name}.png"
 
+    def find_analysis_image_path(self, run_id: str, name: str) -> Path | None:
+        """Ищет изображение запуска в текущем и старых корнях (только чтение)."""
+        self._check_name(run_id, "run_id")
+        self._check_name(name, "name")
+
+        for root in (self.base_dir, *self._known_base_dirs):
+            if root is None:
+                continue
+
+            path = root / "analysis" / run_id / f"{name}.png"
+            if path.is_file():
+                return path
+
+        return None
+
     def delete_analysis_images(self, run_id: str) -> int:
         """Удаляет изображения запуска вместе с его поддиректорией.
 

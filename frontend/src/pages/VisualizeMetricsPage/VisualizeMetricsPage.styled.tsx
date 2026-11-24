@@ -134,7 +134,7 @@ export const ModeButtons = styled.div`
   margin-bottom: 24px;
 `;
 
-export const ModeButton = styled.button<{ active: boolean }>`
+export const ModeButton = styled.button<{ $active: boolean }>`
   height: 44px;
 
   padding: 0 18px;
@@ -151,16 +151,16 @@ export const ModeButton = styled.button<{ active: boolean }>`
 
   transition: 0.2s;
 
-  color: ${({ active }) => (active ? "white" : "rgba(255,255,255,0.55)")};
+  color: ${({ $active }) => ($active ? "white" : "rgba(255,255,255,0.55)")};
 
-  background: ${({ active }) =>
-    active ? "#3a7afe" : "rgba(255,255,255,0.05)"};
+  background: ${({ $active }) =>
+    $active ? "#3a7afe" : "rgba(255,255,255,0.05)"};
 
   &:hover {
     color: white;
 
-    background: ${({ active }) =>
-      active ? "#4b88ff" : "rgba(255,255,255,0.08)"};
+    background: ${({ $active }) =>
+      $active ? "#4b88ff" : "rgba(255,255,255,0.08)"};
   }
 `;
 

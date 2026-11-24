@@ -1,16 +1,16 @@
 import axios from "axios";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AppSettings } from "@/api/settings/settings.api";
 import { useAppSettings } from "@/settings/SettingsContext";
-import * as S from "./SettingsPage.styles";
 import {
   NULLABLE_NUMBERS,
   NULLABLE_STRINGS,
   SECTION_LABELS,
   SELECT_OPTIONS,
   labelFor,
-} from "./SettingsPage.labels";
+} from "@/settings/labels";
+import * as S from "./SettingsPage.styles";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -133,6 +133,36 @@ export const SettingsPage = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     () => new Set(["storage"]),
   );
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      const toolbar = toolbarRef.current;
+      if (!toolbar) return;
+
+      // Панель прилипла, когда её верхняя граница дошла до top: 24px.
+      // В этот момент сдвигаем её вправо от кнопки «Назад».
+      const stuck = toolbar.getBoundingClientRect().top <= 25;
+      toolbar.dataset.stuck = String(stuck);
+    };
+
+    // Первый кадр нужен для восстановленной прокрутки и возврата на страницу.
+    const frame = requestAnimationFrame(update);
+
+    // capture ловит прокрутку любого контейнера, а не только window.
+    document.addEventListener("scroll", update, true);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    window.addEventListener("pageshow", update);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("scroll", update, true);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("pageshow", update);
+    };
+  }, []);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(settings),
@@ -212,32 +242,9 @@ export const SettingsPage = () => {
               перезапуска backend.
             </S.Subtitle>
           </S.TitleBlock>
-
-          <S.HeaderActions>
-            <S.Button
-              type="button"
-              onClick={() => {
-                setDraft(clone(settings) as unknown as Json);
-                setMessage(null);
-                setError(null);
-              }}
-              disabled={!dirty || saving}
-            >
-              Сбросить изменения
-            </S.Button>
-
-            <S.Button
-              $primary
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={!dirty || saving}
-            >
-              {saving ? "Сохранение..." : "Сохранить"}
-            </S.Button>
-          </S.HeaderActions>
         </S.Header>
 
-        <S.Toolbar>
+        <S.Toolbar ref={toolbarRef}>
           <S.SearchBox>
             <S.SearchInput
               type="search"
@@ -370,6 +377,39 @@ export const SettingsPage = () => {
           );
         })}
       </S.Content>
+
+      <S.ActionBar>
+        <S.ActionBarStatus $dirty={dirty} $error={Boolean(error)}>
+          {saving
+            ? "Сохранение..."
+            : error
+              ? "Не удалось сохранить настройки"
+              : dirty
+                ? "Есть несохранённые изменения"
+                : "Все изменения сохранены"}
+        </S.ActionBarStatus>
+
+        <S.Button
+          type="button"
+          onClick={() => {
+            setDraft(clone(settings) as unknown as Json);
+            setMessage(null);
+            setError(null);
+          }}
+          disabled={!dirty || saving}
+        >
+          Сбросить изменения
+        </S.Button>
+
+        <S.Button
+          $primary
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={!dirty || saving}
+        >
+          {saving ? "Сохранение..." : "Сохранить"}
+        </S.Button>
+      </S.ActionBar>
     </S.Page>
   );
 };

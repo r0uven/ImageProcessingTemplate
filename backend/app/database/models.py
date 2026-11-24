@@ -23,6 +23,7 @@ class AnalysisRunModel:
     params_id: str
     created_at: int
     analysis_result_id: str = ""
+    settings_snapshot: str | None = None
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,12 @@ class AnalysisResultRecord:
     file_path: str
     width: int
     height: int
+    # Снимок настроек на момент запуска (JSON) и параметры запроса из
+    # processing_parameters — нужны для старых запусков без снимка.
+    settings_snapshot: str | None = None
+    preprocessing_params: str | None = None
+    segmentation_params: str | None = None
+    separation_params: str | None = None
 
 
 @dataclass(frozen=True)

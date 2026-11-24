@@ -76,9 +76,10 @@ class AnalysisRepository:
                         model_id,
                         params_id,
                         analysis_result_id,
-                        created_at
+                        created_at,
+                        settings_snapshot
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         run.run_id,
@@ -87,6 +88,7 @@ class AnalysisRepository:
                         run.params_id,
                         run.analysis_result_id,
                         run.created_at,
+                        run.settings_snapshot,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -120,12 +122,18 @@ class AnalysisRepository:
                 result.size_distribution,
                 img.file_path,
                 img.width,
-                img.height
+                img.height,
+                run.settings_snapshot,
+                params.preprocessing_params,
+                params.segmentation_params,
+                params.separation_params
             FROM analysis_runs run
             JOIN analysis_results result
                 ON result.analysis_result_id = run.analysis_result_id
             JOIN images img
                 ON img.image_id = run.image_id
+            LEFT JOIN processing_parameters params
+                ON params.params_id = run.params_id
             WHERE run.run_id = ?
             """,
             (run_id,),
@@ -148,6 +156,10 @@ class AnalysisRepository:
             file_path=row[11],
             width=row[12],
             height=row[13],
+            settings_snapshot=row[14],
+            preprocessing_params=row[15],
+            segmentation_params=row[16],
+            separation_params=row[17],
         )
 
     def get_all_runs(self) -> list[HistoryRunRecord]:

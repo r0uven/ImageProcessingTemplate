@@ -28,7 +28,7 @@ export const Content = styled.div`
 
   margin: 0 auto;
 
-  padding: 72px 48px 120px;
+  padding: 72px 48px 140px;
 `;
 
 export const Header = styled.div`
@@ -73,20 +73,77 @@ export const Subtitle = styled.div`
   line-height: 1.5;
 `;
 
-export const HeaderActions = styled.div`
+export const ActionBar = styled.div`
+  position: fixed;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 50;
+
   display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
 
   gap: 12px;
 
   flex-wrap: wrap;
+
+  padding: 14px 24px;
+
+  background: rgba(11, 15, 20, 0.9);
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  backdrop-filter: blur(16px);
+
+  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.3);
+`;
+
+export const ActionBarStatus = styled.div<{
+  $dirty?: boolean;
+  $error?: boolean;
+}>`
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-right: auto;
+
+  font-size: 13px;
+
+  color: rgba(255, 255, 255, 0.55);
+
+  &::before {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: ${({ $dirty, $error }) =>
+      $error
+        ? "#ff5d5d"
+        : $dirty
+          ? "#f0b35b"
+          : "rgba(74, 222, 128, 0.85)"};
+  }
 `;
 
 export const Toolbar = styled.div`
   position: sticky;
 
-  top: 12px;
+  top: 24px;
 
   z-index: 20;
+
+  margin-left: 0;
 
   display: flex;
 
@@ -109,6 +166,20 @@ export const Toolbar = styled.div`
   backdrop-filter: blur(14px);
 
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+
+  transition: margin-left 0.18s ease;
+
+  &[data-stuck="true"] {
+    margin-left: 96px;
+  }
+
+  @media (max-width: 720px) {
+    top: 84px;
+
+    &[data-stuck="true"] {
+      margin-left: 0;
+    }
+  }
 `;
 
 export const SearchBox = styled.div`

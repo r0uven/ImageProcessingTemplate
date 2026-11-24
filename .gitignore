@@ -2,6 +2,10 @@
 KARTINKI/
 backend/data/
 
+# Settings backups and temporary files
+backend/app/config/settings.json.broken-*
+backend/app/config/settings.json.*.tmp
+
 # Logs
 logs
 *.log

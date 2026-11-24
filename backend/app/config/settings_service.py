@@ -1,9 +1,7 @@
 """Чтение, валидация и сохранение глобальных настроек приложения."""
 
 import copy
-import json
-import os
-import tempfile
+import logging
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,9 +11,11 @@ from app.config.config_loader import (
     APP_SETTINGS,
     CONFIG_PATH,
     resolve_images_directory,
+    write_settings_file,
 )
 from app.schemas.settings_schema import AppSettings
 
+logger = logging.getLogger(__name__)
 _LOCK = threading.RLock()
 
 
@@ -28,8 +28,21 @@ def _now_iso() -> str:
 
 
 def read_settings() -> dict[str, Any]:
-    """Возвращает глубокую копию текущих настроек."""
+    """Возвращает глубокую копию текущих настроек.
+
+    Если файл настроек удалили при работающем backend, он восстанавливается
+    из активных значений, чтобы приложение продолжало работать штатно.
+    """
     with _LOCK:
+        if not CONFIG_PATH.is_file():
+            try:
+                write_settings_file(APP_SETTINGS, CONFIG_PATH)
+            except OSError:
+                logger.exception(
+                    "Не удалось восстановить отсутствующий файл настроек %s",
+                    CONFIG_PATH,
+                )
+
         return copy.deepcopy(APP_SETTINGS)
 
 
@@ -86,35 +99,12 @@ def validate_settings(payload: dict[str, Any] | AppSettings) -> dict[str, Any]:
     return settings
 
 
-def _write_settings_atomically(settings: dict[str, Any]) -> None:
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    fd, tmp_name = tempfile.mkstemp(
-        prefix=f"{CONFIG_PATH.name}.",
-        suffix=".tmp",
-        dir=CONFIG_PATH.parent,
-        text=True,
-    )
-    tmp_path = Path(tmp_name)
-
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as file:
-            json.dump(settings, file, ensure_ascii=False, indent=2)
-            file.write("\n")
-            file.flush()
-            os.fsync(file.fileno())
-        os.replace(tmp_path, CONFIG_PATH)
-    except BaseException:
-        tmp_path.unlink(missing_ok=True)
-        raise
-
-
 def update_settings(payload: dict[str, Any] | AppSettings) -> dict[str, Any]:
     """Валидирует, сохраняет в settings.json и применяет настройки в памяти."""
     validated = validate_settings(payload)
 
     with _LOCK:
-        _write_settings_atomically(validated)
+        write_settings_file(validated, CONFIG_PATH)
 
         # APP_SETTINGS импортирован многими модулями по ссылке. Обновляем
         # содержимое на месте, чтобы они сразу увидели новые значения.
