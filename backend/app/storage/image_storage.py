@@ -73,7 +73,8 @@ class ImageStorage:
 
         Args:
             base_dir: Корневая директория для хранения всех файлов. Если не
-                задана, берётся из ``storage.images_directory`` в settings.json.
+                задана, берётся активное хранилище из реестра
+                ``storage.storages`` в settings.json.
             cache_size: Максимальное количество элементов в каждом из кэшей.
         """
         if cache_size < 1:
@@ -83,10 +84,11 @@ class ImageStorage:
             threading.RLock()
         )  # Рекурсивный мьютекс для потокобезопасного доступа к кэшу
 
-        # Все корни, из которых разрешено читать файлы. Старые корни остаются
-        # доступными после смены пути, чтобы уже сохранённые изображения и
-        # история не «пропадали».
-        self._known_base_dirs: set[Path] = set()
+        # Реестр хранилищ: id -> абсолютный корень. Активное хранилище
+        # используется для записи, остальные доступны только для чтения.
+        self._storages: dict[str, Path] = {}
+        self.active_storage_id: str | None = None
+        self._read_roots: list[Path] = []
         self.base_dir: Path | None = None
         self.apply_settings(APP_SETTINGS, base_dir=base_dir, config_changed=True)
 
@@ -102,43 +104,82 @@ class ImageStorage:
         base_dir: str | Path | None = None,
         config_changed: bool = False,
     ) -> None:
-        """Применяет storage.* настройки и при необходимости меняет корень."""
+        """Применяет реестр ``storage.*`` и переключает активное хранилище."""
         settings = settings or APP_SETTINGS
         storage_settings = settings.get("storage", {})
 
-        target_dir = (
-            Path(base_dir)
-            if base_dir is not None
-            else resolve_images_directory(
-                storage_settings.get("images_directory")
-            )
-        )
-        target_dir = target_dir.resolve()
+        if base_dir is not None:
+            registry = {"default": Path(base_dir).resolve()}
+            active_id = "default"
+        else:
+            registry: dict[str, Path] = {}
+            for entry in storage_settings.get("storages", []):
+                if not isinstance(entry, dict):
+                    continue
 
-        if target_dir != self.base_dir:
-            if self.base_dir is not None:
-                self._known_base_dirs.add(self.base_dir)
-                # Старый корень становится legacy-корнем для чтения.
-                if config_changed:
-                    logger.info(
-                        "Image storage directory changed: %s -> %s",
-                        self.base_dir,
-                        target_dir,
+                entry_id = str(entry.get("id") or "").strip()
+                path_value = entry.get("path")
+                if not entry_id or not path_value:
+                    continue
+
+                try:
+                    registry[entry_id] = resolve_images_directory(path_value)
+                except (OSError, ValueError):
+                    logger.warning(
+                        "Не удалось разрешить путь хранилища %s: %s",
+                        entry_id,
+                        path_value,
                     )
 
-            self.base_dir = target_dir
+            active_id = str(
+                storage_settings.get("active_storage_id") or ""
+            ).strip()
 
-            if config_changed and hasattr(self, "_original_cache"):
-                with self._lock:
-                    self._original_cache.clear()
-                    self._preview_cache.clear()
-                    self._analysis_cache.clear()
+            if active_id not in registry:
+                active_id = next(iter(registry), "")
 
-        # Даже после перезапуска с новым путём старый путь по умолчанию
-        # остаётся доступным для чтения уже сохранённых файлов.
+            if not registry:
+                registry = {
+                    "default": resolve_images_directory(DEFAULT_IMAGES_DIRECTORY)
+                }
+                active_id = "default"
+
+        target_dir = registry[active_id]
+        registry_changed = (
+            registry != self._storages or active_id != self.active_storage_id
+        )
+
+        self._storages = registry
+        self.active_storage_id = active_id
+        self.base_dir = target_dir
+
+        # Порядок важен: активное хранилище ищется первым, затем остальные.
+        read_roots: list[Path] = [target_dir]
+        for path in registry.values():
+            if path not in read_roots:
+                read_roots.append(path)
+
+        # Старая папка по умолчанию остаётся доступной для чтения, даже если
+        # пользователь уже переключился на другое хранилище.
         default_root = (BASE_DIR / DEFAULT_IMAGES_DIRECTORY).resolve()
-        if default_root != self.base_dir:
-            self._known_base_dirs.add(default_root)
+        if default_root not in read_roots:
+            read_roots.append(default_root)
+
+        self._read_roots = read_roots
+
+        if registry_changed and hasattr(self, "_original_cache"):
+            with self._lock:
+                self._original_cache.clear()
+                self._preview_cache.clear()
+                self._analysis_cache.clear()
+
+        if config_changed and registry_changed:
+            logger.info(
+                "Image storage switched to %s (%s); known roots: %s",
+                active_id,
+                target_dir,
+                ", ".join(str(path) for path in read_roots),
+            )
 
         assert self.base_dir is not None
         self.original_dir = self.base_dir / "originals"
@@ -146,7 +187,14 @@ class ImageStorage:
         self.analysis_dir = self.base_dir / "analysis"
 
         for directory in (self.original_dir, self.preview_dir, self.analysis_dir):
-            directory.mkdir(parents=True, exist_ok=True)
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                # Недоступный диск не должен мешать приложению запуститься:
+                # история и файлы из других хранилищ останутся читаемыми.
+                logger.exception(
+                    "Failed to prepare storage directory: %s", directory
+                )
 
         self.cache_max_age_seconds = (
             int(storage_settings.get("cache_max_age_days", DEFAULT_CACHE_MAX_AGE_DAYS))
@@ -176,6 +224,10 @@ class ImageStorage:
     # ------------------------------------------------------------------
     # Утилиты
     # ------------------------------------------------------------------
+
+    def registered_storages(self) -> dict[str, Path]:
+        """Возвращает копию реестра id -> корень хранилища."""
+        return dict(self._storages)
 
     @staticmethod
     def compute_hash(data: bytes) -> str:
@@ -231,33 +283,57 @@ class ImageStorage:
 
         return hasher.hexdigest()
 
-    def _ensure_inside_base(self, file_path: str | Path) -> Path:
-        """
-        Проверяет, что запрашиваемый путь физически находится внутри корневой
-        директории хранилища (защита от Path Traversal атак).
-
-        После смены ``storage.images_directory`` старые корни остаются
-        доступными только для чтения уже сохранённых файлов.
-        """
-        roots = {
-            root
-            for root in (self.base_dir, *self._known_base_dirs)
-            if root is not None
-        }
+    def _candidate_paths(self, file_path: str | Path) -> list[Path]:
+        """Возвращает варианты абсолютного пути для файла из БД."""
         raw_path = Path(file_path)
         candidates = [raw_path]
+
         if not raw_path.is_absolute():
             # До перехода на абсолютные пути БД сохраняла ``data/images/...``.
-            # Проверяем этот legacy-путь относительно backend directory, не
-            # ослабляя проверку принадлежности storage root.
-            for root in roots:
+            candidates.append(BASE_DIR / raw_path)
+
+            for root in self._read_roots:
+                candidates.append(root / raw_path)
+                # Legacy-путь вида ``data/images/originals/...`` проверяем
+                # относительно родителя корня, не ослабляя проверку.
                 candidates.append(root.parent.parent / raw_path)
 
-        for candidate in candidates:
-            path = candidate.resolve()
+        return candidates
+
+    def storage_root_for_path(self, file_path: str | Path) -> Path | None:
+        """Возвращает зарегистрированный корень, которому принадлежит файл."""
+        roots = [root for root in self._read_roots if root is not None]
+
+        for candidate in self._candidate_paths(file_path):
+            try:
+                path = candidate.resolve()
+            except OSError:
+                continue
+
             for root in roots:
                 if path == root or root in path.parents:
-                    return path
+                    return root
+
+        return None
+
+    def _ensure_inside_base(self, file_path: str | Path) -> Path:
+        """Проверяет, что файл принадлежит одному из известных хранилищ.
+
+        Активное и архивные хранилища доступны для чтения. Запись всегда идёт
+        только в активное хранилище.
+        """
+        root = self.storage_root_for_path(file_path)
+        if root is None:
+            raise ValueError(f"Путь вне хранилища: {file_path}")
+
+        for candidate in self._candidate_paths(file_path):
+            try:
+                path = candidate.resolve()
+            except OSError:
+                continue
+
+            if path == root or root in path.parents:
+                return path
 
         raise ValueError(f"Путь вне хранилища: {file_path}")
 
@@ -384,13 +460,18 @@ class ImageStorage:
     # Превью изображений
     # ------------------------------------------------------------------
 
-    def save_preview(self, image_id: str, image: Image.Image) -> Path:
+    def save_preview(
+        self,
+        image_id: str,
+        image: Image.Image,
+        root: Path | None = None,
+    ) -> Path:
         """
         Сохраняет уменьшенную копию (превью) изображения в формате PNG.
         """
         self._check_name(image_id, "image_id")
 
-        path = self.preview_path(image_id)
+        path = self.preview_path(image_id, root)
         self._atomic_write(path, lambda tmp: image.save(tmp, format="PNG"))
         self._invalidate(self._preview_cache, path)
 
@@ -444,9 +525,22 @@ class ImageStorage:
         image = self._load_cached(self._analysis_cache, file_path, self._read_pil)
         return None if image is None else image.copy()
 
-    def preview_path(self, image_id: str) -> Path:
+    def preview_path(self, image_id: str, root: Path | None = None) -> Path:
         self._check_name(image_id, "image_id")
-        return self.preview_dir / f"{image_id}.png"
+        base = self.base_dir if root is None else root
+        assert base is not None
+        return base / "previews" / f"{image_id}.png"
+
+    def find_preview_path(self, image_id: str) -> Path | None:
+        """Ищет превью во всех зарегистрированных хранилищах."""
+        self._check_name(image_id, "image_id")
+
+        for root in self._read_roots:
+            path = root / "previews" / f"{image_id}.png"
+            if path.is_file():
+                return path
+
+        return None
 
     def analysis_image_path(self, run_id: str, name: str) -> Path:
         self._check_name(run_id, "run_id")
@@ -454,14 +548,11 @@ class ImageStorage:
         return self.analysis_dir / run_id / f"{name}.png"
 
     def find_analysis_image_path(self, run_id: str, name: str) -> Path | None:
-        """Ищет изображение запуска в текущем и старых корнях (только чтение)."""
+        """Ищет изображение запуска во всех зарегистрированных хранилищах."""
         self._check_name(run_id, "run_id")
         self._check_name(name, "name")
 
-        for root in (self.base_dir, *self._known_base_dirs):
-            if root is None:
-                continue
-
+        for root in self._read_roots:
             path = root / "analysis" / run_id / f"{name}.png"
             if path.is_file():
                 return path
@@ -469,40 +560,45 @@ class ImageStorage:
         return None
 
     def delete_analysis_images(self, run_id: str) -> int:
-        """Удаляет изображения запуска вместе с его поддиректорией.
+        """Удаляет изображения запуска из всех хранилищ.
 
         Returns:
             Количество удалённых файлов.
         """
         self._check_name(run_id, "run_id")
-        run_dir = self.analysis_dir / run_id
-
-        if not run_dir.is_dir():
-            return 0
 
         removed = 0
+        visited: set[Path] = set()
 
-        with self._lock:
-            for path in run_dir.iterdir():
-                if not path.is_file():
-                    continue
+        for root in self._read_roots:
+            run_dir = root / "analysis" / run_id
+            if run_dir in visited or not run_dir.is_dir():
+                continue
+            visited.add(run_dir)
 
-                self._analysis_cache.pop(path.resolve(), None)
+            with self._lock:
+                for path in run_dir.iterdir():
+                    if not path.is_file():
+                        continue
 
-                try:
-                    path.unlink()
-                except FileNotFoundError:
-                    pass
-                except OSError:
-                    logger.warning("Failed to remove analysis image: %s", path)
-                    continue
+                    self._analysis_cache.pop(path.resolve(), None)
 
-                removed += 1
+                    try:
+                        path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    except OSError:
+                        logger.warning("Failed to remove analysis image: %s", path)
+                        continue
 
-        try:
-            run_dir.rmdir()
-        except OSError:
-            logger.warning("Failed to remove analysis run directory: %s", run_dir)
+                    removed += 1
+
+            try:
+                run_dir.rmdir()
+            except OSError:
+                logger.warning(
+                    "Failed to remove analysis run directory: %s", run_dir
+                )
 
         return removed
 
@@ -511,29 +607,35 @@ class ImageStorage:
     # ------------------------------------------------------------------
 
     def _cache_files_oldest_first(self) -> list[tuple[float, Path, int]]:
-        """Собирает превью, сортируя их от старых к новым.
+        """Собирает превью всех хранилищ, сортируя их от старых к новым.
 
         Оригиналы не являются кэшем: на них ссылается база данных, поэтому
         автоматическое удаление оригинала оставило бы рабочую запись без
         исходного изображения.
         """
         files: list[tuple[float, Path, int]] = []
+        visited: set[Path] = set()
 
-        try:
-            entries = self.preview_dir.iterdir()
-        except OSError:
-            logger.warning("Failed to read cache directory: %s", self.preview_dir)
-            return files
+        for root in self._read_roots:
+            preview_dir = root / "previews"
+            if preview_dir in visited:
+                continue
+            visited.add(preview_dir)
 
-        for path in entries:
             try:
-                if not path.is_file():
-                    continue
-                stat = path.stat()
+                entries = preview_dir.iterdir()
             except OSError:
                 continue
 
-            files.append((stat.st_mtime, path, stat.st_size))
+            for path in entries:
+                try:
+                    if not path.is_file():
+                        continue
+                    stat = path.stat()
+                except OSError:
+                    continue
+
+                files.append((stat.st_mtime, path, stat.st_size))
 
         files.sort(key=lambda item: item[0])
         return files

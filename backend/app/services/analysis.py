@@ -143,7 +143,7 @@ class AnalysisService:
         # Если запуск уже сохранён, записываем только недостающие файлы
         # (например, если они были удалены с диска вручную).
         for name, image_to_save in analysis_images.items():
-            if not self.storage.analysis_image_path(run_id, name).is_file():
+            if self.storage.find_analysis_image_path(run_id, name) is None:
                 self.storage.save_analysis_image(run_id, name, image_to_save)
 
         logger.info(
@@ -191,6 +191,6 @@ class AnalysisService:
     def _images_exist(self, run_id: str, names: Iterable[str]) -> bool:
         """Проверяет, что все результирующие картинки запуска есть на диске."""
         return all(
-            self.storage.analysis_image_path(run_id, name).is_file()
+            self.storage.find_analysis_image_path(run_id, name) is not None
             for name in names
         )

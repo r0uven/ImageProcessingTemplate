@@ -5,6 +5,7 @@
 данных, которые приходят из UI перед записью файла.
 """
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -253,19 +254,78 @@ class AnalysisPipelineSettings(_StrictModel):
     save_features: bool
 
 
+class StorageEntry(_StrictModel):
+    """Одно зарегистрированное хранилище изображений."""
+
+    id: str = Field(min_length=1, max_length=64)
+    path: str = Field(min_length=1)
+    label: str = ""
+    created_at: str | None = None
+    last_used_at: str | None = None
+
+    @field_validator("id")
+    @classmethod
+    def _safe_id(cls, value: str) -> str:
+        value = value.strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", value):
+            raise ValueError("Некорректный идентификатор хранилища")
+        return value
+
+    @field_validator("path")
+    @classmethod
+    def _non_empty_path(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Путь к папке хранилища не может быть пустым")
+        return value
+
+
 class StorageSettings(_StrictModel):
-    images_directory: str = Field(default="data/images", min_length=1)
+    active_storage_id: str = Field(min_length=1)
+    storages: list[StorageEntry] = Field(min_length=1)
     cache_max_age_days: int = Field(ge=0)
     cache_max_total_bytes: int = Field(ge=0)
     cleanup_interval_minutes: int = Field(ge=1)
     cleanup_max_deletions_per_run: int = Field(ge=0)
 
-    @field_validator("images_directory")
+    @model_validator(mode="after")
+    def _active_storage_exists(self) -> "StorageSettings":
+        ids = [entry.id for entry in self.storages]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Идентификаторы хранилищ должны быть уникальны")
+        if self.active_storage_id not in ids:
+            raise ValueError(
+                "active_storage_id должен указывать на одно из хранилищ"
+            )
+        return self
+
+
+class StorageCreateRequest(_StrictModel):
+    path: str = Field(min_length=1)
+    label: str = ""
+    activate: bool = False
+
+    @field_validator("path")
     @classmethod
-    def _non_empty_directory(cls, value: str) -> str:
+    def _non_empty_path(cls, value: str) -> str:
         value = value.strip()
         if not value:
-            raise ValueError("Путь к папке изображений не может быть пустым")
+            raise ValueError("Путь к папке хранилища не может быть пустым")
+        return value
+
+
+class StorageUpdateRequest(_StrictModel):
+    path: str | None = None
+    label: str | None = None
+
+    @field_validator("path")
+    @classmethod
+    def _non_empty_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("Путь к папке хранилища не может быть пустым")
         return value
 
 

@@ -140,6 +140,8 @@ export const FIELD_LABELS: Record<string, string> = {
 
   // storage
   images_directory: "Папка для изображений",
+  active_storage_id: "Активное хранилище",
+  storages: "Список хранилищ",
   cache_max_age_days: "Максимальный возраст кэша, дней",
   cache_max_total_bytes: "Максимальный объём кэша, байт",
   cleanup_interval_minutes: "Интервал очистки, минут",

@@ -1,7 +1,6 @@
-import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { AppSettings } from "@/api/settings/settings.api";
+import type { AppSettings, SettingsEnvelope } from "@/api/settings/settings.api";
 import { useAppSettings } from "@/settings/SettingsContext";
 import {
   NULLABLE_NUMBERS,
@@ -10,6 +9,8 @@ import {
   SELECT_OPTIONS,
   labelFor,
 } from "@/settings/labels";
+import { StorageManager } from "./StorageManager";
+import { formatError } from "./formatError";
 import * as S from "./SettingsPage.styles";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -20,31 +21,6 @@ function isObject(value: Json): value is { [key: string]: Json } {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function formatError(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const detail = (error.response?.data as { detail?: unknown } | undefined)
-      ?.detail;
-
-    if (Array.isArray(detail)) {
-      return detail
-        .map((item) => {
-          const entry = item as { loc?: unknown[]; msg?: string };
-          const location = Array.isArray(entry.loc)
-            ? entry.loc.filter((part) => part !== "body").join(".")
-            : "";
-          return location ? `${location}: ${entry.msg ?? ""}` : String(entry.msg);
-        })
-        .join("\n");
-    }
-
-    if (typeof detail === "string") return detail;
-
-    return error.message;
-  }
-
-  return error instanceof Error ? error.message : String(error);
 }
 
 function searchableValue(value: Json): string {
@@ -120,8 +96,36 @@ const SECTION_ORDER = [
   "training",
 ];
 
+/**
+ * Поля реестра хранилищ редактируются отдельным компонентом StorageManager,
+ * поэтому общий редактор JSON их не показывает и не перезаписывает.
+ */
+const STORAGE_REGISTRY_FIELDS = new Set(["storages", "active_storage_id"]);
+
+function withoutStorageRegistry(value: { [key: string]: Json }) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => !STORAGE_REGISTRY_FIELDS.has(key)),
+  );
+}
+
+function withLatestStorageRegistry(
+  draft: Json,
+  envelope: SettingsEnvelope,
+): Json {
+  if (!isObject(draft) || !isObject(draft.storage)) return draft;
+
+  return {
+    ...draft,
+    storage: {
+      ...draft.storage,
+      active_storage_id: envelope.settings.storage.active_storage_id,
+      storages: envelope.settings.storage.storages as unknown as Json,
+    },
+  };
+}
+
 export const SettingsPage = () => {
-  const { settings, meta, save } = useAppSettings();
+  const { settings, meta, save, reload } = useAppSettings();
 
   const [draft, setDraft] = useState<Json>(
     () => clone(settings) as unknown as Json,
@@ -181,13 +185,25 @@ export const SettingsPage = () => {
     setError(null);
 
     try {
-      const response = await save(draft as unknown as AppSettings);
+      const payload = withLatestStorageRegistry(draft, meta);
+      const response = await save(payload as unknown as AppSettings);
       setDraft(clone(response.settings) as unknown as Json);
       setMessage("Настройки сохранены в settings.json и применены.");
     } catch (cause) {
       setError(formatError(cause));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleStorageChanged = async () => {
+    // Реестр хранилищ сохраняется сразу через /settings/storages.
+    // Подтягиваем актуальные настройки, чтобы черновик не перезаписал
+    // реестр устаревшими значениями при следующем «Сохранить».
+    const envelope = await reload();
+
+    if (envelope) {
+      setDraft((previous) => withLatestStorageRegistry(previous, envelope));
     }
   };
 
@@ -294,6 +310,18 @@ export const SettingsPage = () => {
           </S.MetaRow>
 
           <S.MetaRow>
+            <span>Хранилищ в реестре:</span>
+            <code>
+              {meta.storages.length}
+              {meta.storages.find((entry) => entry.is_active)?.label
+                ? ` · активно: ${
+                    meta.storages.find((entry) => entry.is_active)?.label
+                  }`
+                : ""}
+            </code>
+          </S.MetaRow>
+
+          <S.MetaRow>
             <span>Путь в settings.json:</span>
             <code>{meta.images_directory}</code>
           </S.MetaRow>
@@ -364,13 +392,34 @@ export const SettingsPage = () => {
 
               {isOpen && (
                 <S.SectionBody>
-                  <ObjectFields
-                    value={value}
-                    path={section}
-                    scope={scope}
-                    tokens={filterTokens}
-                    onChange={(next) => updateSection(section, next)}
-                  />
+                  {section === "storage" ? (
+                    <S.StorageSection>
+                      <StorageManager onChanged={handleStorageChanged} />
+
+                      <ObjectFields
+                        value={withoutStorageRegistry(value)}
+                        path={section}
+                        scope={scope}
+                        tokens={filterTokens}
+                        onChange={(next) =>
+                          updateSection(section, {
+                            ...value,
+                            ...next,
+                            storages: value.storages,
+                            active_storage_id: value.active_storage_id,
+                          })
+                        }
+                      />
+                    </S.StorageSection>
+                  ) : (
+                    <ObjectFields
+                      value={value}
+                      path={section}
+                      scope={scope}
+                      tokens={filterTokens}
+                      onChange={(next) => updateSection(section, next)}
+                    />
+                  )}
                 </S.SectionBody>
               )}
             </S.SectionCard>

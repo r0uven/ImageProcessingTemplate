@@ -79,6 +79,14 @@ class ImageRepository:
         )
         self.connection.commit()
 
+    def delete(self, image_id: str) -> None:
+        """Удаляет запись изображения. Связанные запуски удаляются отдельно."""
+        with self.connection:
+            self.connection.execute(
+                "DELETE FROM images WHERE image_id = ?",
+                (image_id,),
+            )
+
     @staticmethod
     def _row_to_model(row: tuple) -> ImageModel:
         return ImageModel(

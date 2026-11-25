@@ -105,6 +105,14 @@ class AnalysisRepository:
         )
         return cursor.fetchone() is not None
 
+    def get_run_ids_by_image(self, image_id: str) -> list[str]:
+        """Возвращает все запуски анализа, привязанные к изображению."""
+        cursor = self.db.execute(
+            "SELECT run_id FROM analysis_runs WHERE image_id = ?",
+            (image_id,),
+        )
+        return [row[0] for row in cursor.fetchall()]
+
     def get_analysis_result(self, run_id: str) -> AnalysisResultRecord | None:
         cursor = self.db.execute(
             """

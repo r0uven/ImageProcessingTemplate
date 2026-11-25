@@ -31,14 +31,27 @@ def get_preview(
     if record is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    preview = storage.get_preview(storage.preview_path(image_id))
+    root = storage.storage_root_for_path(record.file_path)
+    preview_path = (
+        storage.preview_path(image_id, root)
+        if root is not None
+        else storage.find_preview_path(image_id)
+    )
+    preview = storage.get_preview(preview_path) if preview_path else None
 
     if preview is None:
-        original = storage.get_original(record.file_path)
+        try:
+            original = storage.get_original(record.file_path)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=404,
+                detail="Image file is outside registered storages",
+            ) from exc
+
         if original is None:
             raise HTTPException(status_code=404, detail="Image file not found")
 
         preview = make_pretty_image_plot(to_pil(original))
-        storage.save_preview(image_id, preview)
+        storage.save_preview(image_id, preview, root)
 
     return png_response(preview)
