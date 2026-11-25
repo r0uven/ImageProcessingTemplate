@@ -1,34 +1,14 @@
 {
   "image": {
-    "allowed_formats": [
-      "png",
-      "bmp",
-      "tif",
-      "tiff"
-    ],
+    "allowed_formats": ["png", "bmp", "tif", "tiff"],
     "allowed_sizes": [
-      [
-        512,
-        512
-      ],
-      [
-        1024,
-        1024
-      ],
-      [
-        2048,
-        2048
-      ]
+      [512, 512],
+      [1024, 1024],
+      [2048, 2048]
     ],
-    "default_size": [
-      1024,
-      1024
-    ],
+    "default_size": [1024, 1024],
     "grayscale": false,
-    "pixel_value_range": [
-      0,
-      255
-    ],
+    "pixel_value_range": [0, 255],
     "resize_on_load": false
   },
   "preprocessing": {
@@ -116,11 +96,7 @@
     "include_autonomous_pores": true,
     "include_separated_objects": true,
     "include_unseparated_candidates": true,
-    "object_statuses": [
-      "autonomous",
-      "separated",
-      "unseparated_candidate"
-    ]
+    "object_statuses": ["autonomous", "separated", "unseparated_candidate"]
   },
   "feature_extraction": {
     "calculate_object_features": true,
@@ -186,18 +162,8 @@
   "training": {
     "dataset_pair_format": "image_mask",
     "validate_image_mask_size": true,
-    "allowed_image_formats": [
-      ".png",
-      ".bmp",
-      ".tif",
-      ".tiff"
-    ],
-    "allowed_mask_formats": [
-      ".png",
-      ".bmp",
-      ".tif",
-      ".tiff"
-    ],
+    "allowed_image_formats": [".png", ".bmp", ".tif", ".tiff"],
+    "allowed_mask_formats": [".png", ".bmp", ".tif", ".tiff"],
     "training_params": {
       "epochs": 100,
       "batch_size": 8,
