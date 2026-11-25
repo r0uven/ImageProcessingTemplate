@@ -6,6 +6,10 @@ import { getProcessingMetrics, type DistributionType } from "@/entities/analysis
 import { clearAllWorkspaceStates } from "@/entities/workspace";
 import { readStoredDecimals, storeDecimals } from "@/shared/lib/decimals";
 import { useAsyncData } from "@/shared/lib/useAsyncData";
+import { Button } from "@/shared/ui/button";
+import { Page, PageContent, PageHeader, PageTitleBlock } from "@/shared/ui/page";
+import { SegmentedButton } from "@/shared/ui/segmented";
+import { PageSubtitle, PageTitle } from "@/shared/ui/typography";
 import {
   CHART_DECIMALS_STORAGE_KEY,
   DISTRIBUTION_META,
@@ -77,27 +81,27 @@ export const ProcessingMetricsPage = () => {
 
   if (loading) {
     return (
-      <S.Page>
-        <S.Content>
-          <S.Title>Загрузка результатов...</S.Title>
-        </S.Content>
-      </S.Page>
+      <Page>
+        <PageContent $padding="72px">
+          <PageTitle>Загрузка результатов...</PageTitle>
+        </PageContent>
+      </Page>
     );
   }
 
   if (error || !metrics || !runId) {
     return (
-      <S.Page>
-        <S.Content>
-          <S.Title>{error ?? "Результаты не найдены"}</S.Title>
+      <Page>
+        <PageContent $padding="72px">
+          <PageTitle>{error ?? "Результаты не найдены"}</PageTitle>
 
           <S.Actions>
-            <S.NewProcessingButton onClick={startNewProcessing}>
+            <Button $variant="primary" $size="lg" onClick={startNewProcessing}>
               Новая обработка
-            </S.NewProcessingButton>
+            </Button>
           </S.Actions>
-        </S.Content>
-      </S.Page>
+        </PageContent>
+      </Page>
     );
   }
 
@@ -124,14 +128,14 @@ export const ProcessingMetricsPage = () => {
   );
 
   return (
-    <S.Page>
-      <S.Content>
-        <S.Header>
-          <S.TitleBlock>
-            <S.Title>Статистический анализ результатов сегментации</S.Title>
+    <Page>
+      <PageContent $padding="72px">
+        <PageHeader $marginBottom="40px">
+          <PageTitleBlock>
+            <PageTitle>Статистический анализ результатов сегментации</PageTitle>
 
-            <S.Subtitle>Анализ характеристик обнаруженных объектов</S.Subtitle>
-          </S.TitleBlock>
+            <PageSubtitle>Анализ характеристик обнаруженных объектов</PageSubtitle>
+          </PageTitleBlock>
 
           <S.ImageInfoCard>
             <S.ImageInfoTitle>Обработанное изображение</S.ImageInfoTitle>
@@ -142,24 +146,24 @@ export const ProcessingMetricsPage = () => {
               Обнаружено объектов: <strong>{metrics.detectedObjects}</strong>
             </S.ImageInfoText>
           </S.ImageInfoCard>
-        </S.Header>
+        </PageHeader>
 
-        <S.SectionTabs>
-          <S.SectionTab
-            type="button"
+        <S.SectionTabs $plain>
+          <SegmentedButton
+            $size="lg"
             $active={activeSection === "characteristics"}
             onClick={() => setActiveSection("characteristics")}
           >
             Характеристики
-          </S.SectionTab>
+          </SegmentedButton>
 
-          <S.SectionTab
-            type="button"
+          <SegmentedButton
+            $size="lg"
             $active={activeSection === "overview"}
             onClick={() => setActiveSection("overview")}
           >
             Изображения и параметры
-          </S.SectionTab>
+          </SegmentedButton>
         </S.SectionTabs>
 
         {activeSection === "overview" ? (
@@ -201,15 +205,15 @@ export const ProcessingMetricsPage = () => {
         )}
 
         <S.Actions>
-          <S.ChangeSettingsButton onClick={goBackToWorkspace}>
+          <Button $variant="secondary" $size="lg" onClick={goBackToWorkspace}>
             Изменить настройки
-          </S.ChangeSettingsButton>
+          </Button>
 
-          <S.NewProcessingButton onClick={startNewProcessing}>
+          <Button $variant="primary" $size="lg" onClick={startNewProcessing}>
             Новая обработка
-          </S.NewProcessingButton>
+          </Button>
         </S.Actions>
-      </S.Content>
-    </S.Page>
+      </PageContent>
+    </Page>
   );
 };

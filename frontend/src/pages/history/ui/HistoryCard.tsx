@@ -1,6 +1,8 @@
 import type { HistoryItemResponse } from "@/entities/history";
 import { buildMediaUrl } from "@/shared/api/client";
 import TrashSVG from "@/shared/assets/TrashSVG.svg?react";
+import { Badge } from "@/shared/ui/badge";
+import { Button, IconButton } from "@/shared/ui/button";
 
 import * as C from "./HistoryCard.styles";
 
@@ -11,8 +13,10 @@ type HistoryCardProps = {
 };
 
 export function HistoryCard({ item, onDelete, onView }: HistoryCardProps) {
+  const isSuccess = item.status === "SUCCESS";
+
   return (
-    <C.Card>
+    <C.HistoryCardRoot>
       <C.ImagePreview>
         {item.previewUrl ? (
           <img src={buildMediaUrl(item.previewUrl) ?? ""} alt="" />
@@ -26,21 +30,22 @@ export function HistoryCard({ item, onDelete, onView }: HistoryCardProps) {
           <C.FileName>{item.filename}</C.FileName>
 
           <C.CardActions>
-            <C.Status
-              success={item.status === "SUCCESS"}
+            <Badge
+              $variant={isSuccess ? "success" : "danger"}
               title={item.error ?? undefined}
             >
-              {item.status === "SUCCESS" ? "Успешно" : "Ошибка"}
-            </C.Status>
+              {isSuccess ? "Успешно" : "Ошибка"}
+            </Badge>
 
-            <C.DeleteButton
+            <IconButton
               type="button"
+              $variant="danger"
               title="Удалить запись"
               aria-label={`Удалить запись ${item.filename}`}
               onClick={onDelete}
             >
               <TrashSVG />
-            </C.DeleteButton>
+            </IconButton>
           </C.CardActions>
         </C.CardHeader>
 
@@ -73,13 +78,17 @@ export function HistoryCard({ item, onDelete, onView }: HistoryCardProps) {
         )}
 
         <C.Actions>
-          <C.ViewButton disabled={item.status === "FAILED"} onClick={onView}>
+          <Button
+            $variant="primary"
+            disabled={item.status === "FAILED"}
+            onClick={onView}
+          >
             {item.status === "FAILED"
               ? "Результат недоступен"
               : "Просмотреть результат"}
-          </C.ViewButton>
+          </Button>
         </C.Actions>
       </C.CardContent>
-    </C.Card>
+    </C.HistoryCardRoot>
   );
 }

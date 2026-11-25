@@ -14,6 +14,8 @@ import {
   type WorkspaceState,
 } from "@/entities/workspace";
 import { useWorkspaceUpload } from "@/features/workspace-upload";
+import { Button } from "@/shared/ui/button";
+import { Page } from "@/shared/ui/page";
 import { ProcessingSettings } from "@/widgets/processing-settings";
 import { WorkspaceViewer } from "@/widgets/workspace-viewer";
 
@@ -21,15 +23,10 @@ import {
   ActionArea,
   Layout,
   LeftPanel,
-  Page,
   SettingsContent,
   ViewerPanel,
 } from "./WorkspacePage.styles";
-import {
-  FeaturesButton,
-  FeaturesHint,
-  ProcessButton,
-} from "./WorkspaceActions.styles";
+import { FeaturesHint } from "./WorkspaceActions.styles";
 
 export function WorkspacePage() {
   const navigate = useNavigate();
@@ -198,14 +195,20 @@ export function WorkspacePage() {
           </SettingsContent>
 
           <ActionArea>
-            <ProcessButton
+            <Button
+              $variant="primary"
+              $size="lg"
+              $fullWidth
               onClick={handleProcess}
               disabled={isProcessing || !viewerState.original}
             >
               {isProcessing ? "Обработка..." : "Обработать"}
-            </ProcessButton>
+            </Button>
 
-            <FeaturesButton
+            <Button
+              $variant="secondary"
+              $size="lg"
+              $fullWidth
               onClick={() => {
                 if (!runId || isRunOutdated) return;
                 navigate(`/metrics/${runId}`);
@@ -213,7 +216,7 @@ export function WorkspacePage() {
               disabled={!runId || isRunOutdated || isProcessing}
             >
               Вычислить характеристики
-            </FeaturesButton>
+            </Button>
 
             {isRunOutdated && (
               <FeaturesHint>

@@ -1,239 +1,131 @@
 import styled from "styled-components";
 
-export const CardTitle = styled.h2`
-  margin: 0;
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { CardTitle as SharedCardTitle } from "@/shared/ui/typography";
+import { colors, radii, spacing, typography } from "@/shared/styles/tokens";
+import { hintText } from "@/shared/styles/mixins";
 
-  margin-bottom: 24px;
-
-  font-size: 22px;
-
-  font-weight: 600;
-`;
+export const CardTitle = styled(SharedCardTitle)``;
 
 export const PreviewContainer = styled.div`
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 24px;
+  margin-top: ${spacing.lg}px;
 `;
+
 export const ImagesGrid = styled.div`
   display: grid;
-
   grid-template-columns: 1fr 1fr;
-
-  gap: 28px;
-
-  align-items: start;
+  gap: ${spacing.xxl}px;
 `;
-export const ImageCard = styled.div`
-  display: flex;
 
-  flex-direction: column;
-
-  gap: 16px;
-
-  min-width: 0;
+export const ImageCard = styled(Card)`
+  padding: ${spacing.lg}px;
+  border-radius: ${radii.xl}px;
 `;
+
 export const ImageTitle = styled.div`
-  text-align: center;
-
-  font-weight: 600;
-
-  color: rgba(255, 255, 255, 0.8);
+  font-size: ${typography.sizes.sm + 0.5}px;
+  color: ${colors.textMuted};
+  margin-bottom: ${spacing.sm + 2}px;
 `;
+
 export const ImageWrapper = styled.div`
-  aspect-ratio: 1;
-
-  border-radius: 18px;
-
+  border-radius: ${radii.md}px;
   overflow: hidden;
 
-  background: rgba(255, 255, 255, 0.03);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
   img {
+    display: block;
     width: 100%;
-
-    height: 100%;
-
-    object-fit: contain;
+    height: auto;
   }
-`;
-export const PerImageMetrics = styled.div`
-  display: flex;
-
-  justify-content: center;
-
-  gap: 18px;
-
-  margin-top: 8px;
-`;
-export const PerImageMetric = styled.div`
-  padding: 10px 16px;
-
-  border-radius: 12px;
-
-  background: rgba(58, 122, 255, 0.12);
-
-  border: 1px solid rgba(58, 122, 255, 0.2);
-
-  font-size: 14px;
-`;
-export const Navigation = styled.div`
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
-  gap: 20px;
-`;
-export const NavButton = styled.button`
-  border: none;
-
-  border-radius: 12px;
-
-  background: rgba(255, 255, 255, 0.06);
-
-  color: white;
-
-  padding: 12px 20px;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-
-  &:hover {
-    background: rgba(58, 122, 255, 0.8);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-
-    cursor: not-allowed;
-  }
-`;
-export const ImageCounter = styled.div`
-  font-size: 15px;
-
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-export const Labels = styled.div`
-  display: flex;
-  justify-content: space-between;
-
-  color: rgba(255, 255, 255, 0.7);
-
-  font-size: 13px;
-
-  font-weight: 600;
 `;
 
 export const Viewer = styled.div`
   position: relative;
-
-  aspect-ratio: 1;
-
+  border-radius: ${radii.md}px;
   overflow: hidden;
-
-  border-radius: 18px;
-
-  background: rgba(255, 255, 255, 0.04);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
-
   cursor: ew-resize;
-
   user-select: none;
 `;
 
 export const BaseImage = styled.img`
-  position: absolute;
-
-  inset: 0;
-
+  display: block;
   width: 100%;
-
-  height: 100%;
-
-  object-fit: cover;
+  height: auto;
 `;
 
 export const Overlay = styled.div`
   position: absolute;
   inset: 0;
-  overflow: hidden;
 `;
 
 export const OverlayImage = styled.img`
-  position: absolute;
-
-  left: 0;
-
-  top: 0;
-
+  display: block;
   width: 100%;
-
   height: 100%;
-
   object-fit: cover;
 `;
 
 export const Divider = styled.div`
   position: absolute;
-
   top: 0;
-
   bottom: 0;
-
   width: 2px;
-
-  background: white;
-
-  transform: translateX(-1px);
-
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
-
-  pointer-events: none;
+  background: ${colors.text};
+  transform: translateX(-50%);
 `;
 
 export const Handle = styled.div`
   position: absolute;
-
   top: 50%;
-
-  width: 34px;
-
-  height: 34px;
-
-  border-radius: 50%;
-
   transform: translate(-50%, -50%);
-
-  background: white;
-
-  color: black;
-
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
-
   align-items: center;
-
   justify-content: center;
+  background: ${colors.primary};
+  color: ${colors.text};
+  font-size: ${typography.sizes.lg}px;
+`;
 
-  font-size: 16px;
+export const Labels = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: ${spacing.sm + 2}px;
+  ${hintText};
+`;
 
-  font-weight: bold;
+export const PerImageMetrics = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${spacing.md}px;
+  margin-top: ${spacing.lg}px;
+`;
 
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+export const PerImageMetric = styled.div`
+  padding: 6px ${spacing.md}px;
+  border-radius: ${radii.sm}px;
+  background: ${colors.primarySoft};
+  border: 1px solid ${colors.primaryBorder};
+  color: ${colors.primaryText};
+  font-size: ${typography.sizes.sm}px;
+`;
 
-  pointer-events: none;
+export const Navigation = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.md}px;
+  margin-top: ${spacing.lg}px;
+`;
+
+export const NavButton = styled(Button).attrs({
+  $variant: "secondary",
+  $size: "sm",
+})``;
+
+export const ImageCounter = styled.div`
+  ${hintText};
 `;

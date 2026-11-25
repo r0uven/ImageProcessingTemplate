@@ -10,6 +10,14 @@ import {
 } from "@/entities/history";
 import { useAsyncData } from "@/shared/lib/useAsyncData";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import {
+  Page,
+  PageContent,
+  PageHeader,
+  PageTitleBlock,
+} from "@/shared/ui/page";
+import { SegmentedButton, SegmentedGroup } from "@/shared/ui/segmented";
+import { PageSubtitle, PageTitle } from "@/shared/ui/typography";
 
 import { HistoryCard } from "./HistoryCard";
 import * as S from "./HistoryPage.styles";
@@ -92,28 +100,28 @@ export const HistoryPage = () => {
 
   if (loading) {
     return (
-      <S.Page>
-        <S.Content>
-          <S.Title>История обработок</S.Title>
+      <Page>
+        <PageContent $padding="72px">
+          <PageTitle>История обработок</PageTitle>
 
           <S.EmptyText>Загрузка...</S.EmptyText>
-        </S.Content>
-      </S.Page>
+        </PageContent>
+      </Page>
     );
   }
 
   const hasHistory = (history?.length ?? 0) > 0;
 
   return (
-    <S.Page>
-      <S.Content>
-        <S.Header>
-          <S.TitleBlock>
-            <S.Title>История обработок</S.Title>
+    <Page>
+      <PageContent $padding="72px">
+        <PageHeader $marginBottom="42px">
+          <PageTitleBlock>
+            <PageTitle>История обработок</PageTitle>
 
-            <S.Subtitle>Все ранее обработанные изображения</S.Subtitle>
-          </S.TitleBlock>
-        </S.Header>
+            <PageSubtitle>Все ранее обработанные изображения</PageSubtitle>
+          </PageTitleBlock>
+        </PageHeader>
 
         <S.Toolbar>
           <S.SearchWrapper>
@@ -125,28 +133,28 @@ export const HistoryPage = () => {
           </S.SearchWrapper>
 
           <S.RightControls>
-            <S.Filters>
-              <S.FilterButton
-                active={filter === "ALL"}
+            <SegmentedGroup $plain>
+              <SegmentedButton
+                $active={filter === "ALL"}
                 onClick={() => setFilter("ALL")}
               >
                 Все
-              </S.FilterButton>
+              </SegmentedButton>
 
-              <S.FilterButton
-                active={filter === "SUCCESS"}
+              <SegmentedButton
+                $active={filter === "SUCCESS"}
                 onClick={() => setFilter("SUCCESS")}
               >
                 Успешно
-              </S.FilterButton>
+              </SegmentedButton>
 
-              <S.FilterButton
-                active={filter === "FAILED"}
+              <SegmentedButton
+                $active={filter === "FAILED"}
                 onClick={() => setFilter("FAILED")}
               >
                 Ошибка
-              </S.FilterButton>
-            </S.Filters>
+              </SegmentedButton>
+            </SegmentedGroup>
 
             <S.SortSelect
               value={sort}
@@ -186,7 +194,7 @@ export const HistoryPage = () => {
             />
           ))}
         </S.CardsContainer>
-      </S.Content>
+      </PageContent>
 
       <ConfirmDialog
         open={pendingDelete !== null}
@@ -201,6 +209,6 @@ export const HistoryPage = () => {
           if (!isDeleting) setPendingDelete(null);
         }}
       />
-    </S.Page>
+    </Page>
   );
 };

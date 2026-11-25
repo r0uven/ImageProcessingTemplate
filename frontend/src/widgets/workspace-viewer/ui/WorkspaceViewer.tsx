@@ -4,6 +4,8 @@ import type { UploadResponse } from "@/entities/analysis";
 import type { WorkspaceMode } from "@/entities/workspace";
 import { buildMediaUrl } from "@/shared/api/client";
 import TrashSVG from "@/shared/assets/TrashSVG.svg?react";
+import { IconButton } from "@/shared/ui/button";
+import { SegmentedButton, SegmentedGroup } from "@/shared/ui/segmented";
 
 import * as S from "./WorkspaceViewer.styles";
 
@@ -34,33 +36,36 @@ export function WorkspaceViewer({
     <>
       <S.ViewerHeader>
         {hasImage && (
-          <S.ClearButton onClick={onClear}>
+          <IconButton $variant="danger" onClick={onClear}>
             <TrashSVG />
-          </S.ClearButton>
+          </IconButton>
         )}
 
-        <S.ModeSwitchContainer>
-          <S.ModeButton
-            active={mode === "original"}
+        <SegmentedGroup>
+          <SegmentedButton
+            $size="sm"
+            $active={mode === "original"}
             onClick={() => onModeChange("original")}
           >
             Оригинал
-          </S.ModeButton>
+          </SegmentedButton>
 
-          <S.ModeButton
-            active={mode === "processed"}
+          <SegmentedButton
+            $size="sm"
+            $active={mode === "processed"}
             onClick={() => onModeChange("processed")}
           >
             Результат
-          </S.ModeButton>
+          </SegmentedButton>
 
-          <S.ModeButton
-            active={mode === "annotated"}
+          <SegmentedButton
+            $size="sm"
+            $active={mode === "annotated"}
             onClick={() => onModeChange("annotated")}
           >
             Объекты
-          </S.ModeButton>
-        </S.ModeSwitchContainer>
+          </SegmentedButton>
+        </SegmentedGroup>
       </S.ViewerHeader>
 
       {!hasImage ? (
@@ -102,10 +107,10 @@ export function WorkspaceViewer({
           </S.ImageWrapper>
 
           <S.ToolBar>
-            <S.ToolButton>🖱</S.ToolButton>
-            <S.ToolButton>✂</S.ToolButton>
-            <S.ToolButton>🧹</S.ToolButton>
-            <S.ToolButton>⊖</S.ToolButton>
+            <IconButton $variant="ghost">🖱</IconButton>
+            <IconButton $variant="ghost">✂</IconButton>
+            <IconButton $variant="ghost">🧹</IconButton>
+            <IconButton $variant="ghost">⊖</IconButton>
           </S.ToolBar>
         </>
       )}

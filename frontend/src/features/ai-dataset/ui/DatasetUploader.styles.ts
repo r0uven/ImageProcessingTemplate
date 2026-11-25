@@ -1,99 +1,76 @@
 import styled from "styled-components";
 
+import { colors, radii, spacing, transitions, typography } from "@/shared/styles/tokens";
+
 export const DatasetContainer = styled.div`
   display: flex;
-
   flex-direction: column;
-
-  gap: 20px;
+  gap: ${spacing.xl}px;
 `;
 
 export const DatasetPair = styled.div`
-  padding: 20px;
-
-  border-radius: 18px;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: ${spacing.xl}px;
+  border-radius: ${radii.xl}px;
+  background: ${colors.surfaceSoft};
+  border: 1px solid ${colors.border};
 `;
 
 export const PairHeader = styled.div`
   display: flex;
-
   justify-content: space-between;
-
   align-items: center;
-
-  margin-bottom: 16px;
+  gap: ${spacing.md}px;
+  margin-bottom: ${spacing.lg}px;
 `;
 
 export const PairTitle = styled.div`
-  font-weight: 600;
+  font-weight: ${typography.weights.semibold};
 `;
 
 export const PairReady = styled.div`
-  color: #45d483;
-
-  font-size: 14px;
+  color: ${colors.success};
+  font-size: ${typography.sizes.md}px;
 `;
 
 export const UploadGrid = styled.div`
   display: grid;
-
   grid-template-columns: 1fr 1fr;
-
-  gap: 16px;
+  gap: ${spacing.lg}px;
 `;
 
 export const UploadArea = styled.label`
-  height: 180px;
-
-  border-radius: 18px;
-
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-
-  background: rgba(255, 255, 255, 0.02);
-
   display: flex;
-
   flex-direction: column;
-
   justify-content: center;
-
   align-items: center;
-
+  height: 180px;
+  border-radius: ${radii.xl}px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
-
-  transition: 0.2s;
+  transition: ${transitions.base};
 
   &:hover {
-    border-color: rgba(58, 122, 255, 0.8);
-
-    background: rgba(58, 122, 255, 0.05);
+    border-color: ${colors.primaryBorder};
+    background: ${colors.primarySoft};
   }
 `;
 
 export const UploadTitle = styled.div`
-  font-weight: 600;
-
-  margin-bottom: 8px;
+  font-weight: ${typography.weights.semibold};
+  margin-bottom: ${spacing.sm}px;
 `;
 
 export const UploadHint = styled.div`
-  font-size: 13px;
-
-  color: rgba(255, 255, 255, 0.5);
+  font-size: ${typography.sizes.sm}px;
+  color: ${colors.textDim};
 `;
 
 export const PreviewImage = styled.img`
   width: 100%;
-
   height: 180px;
-
   object-fit: cover;
-
-  border-radius: 18px;
+  border-radius: ${radii.xl}px;
 `;
 
 export const HiddenInput = styled.input`

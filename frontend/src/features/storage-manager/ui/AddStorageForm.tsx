@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/button";
+
 import * as S from "./StorageForms.styles";
 
 type AddStorageFormProps = {
@@ -42,13 +44,15 @@ export function AddStorageForm({
           onChange={(event) => onPathChange(event.target.value)}
         />
 
-        <S.SmallButton
+        <Button
           type="button"
+          $variant="secondary"
+          $size="sm"
           disabled={busy !== null}
           onClick={onPickFolder}
         >
           Выбрать папку…
-        </S.SmallButton>
+        </Button>
       </S.FormRow>
 
       <S.FormRow>
@@ -76,14 +80,15 @@ export function AddStorageForm({
       </S.FormHint>
 
       <S.FormActions>
-        <S.SmallButton
-          $primary
+        <Button
           type="button"
+          $variant="primary"
+          $size="sm"
           disabled={busy !== null}
           onClick={onAdd}
         >
           {busy === "add" ? "Добавление..." : "Добавить"}
-        </S.SmallButton>
+        </Button>
       </S.FormActions>
     </S.StorageForm>
   );

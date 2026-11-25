@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
+import { Button } from "@/shared/ui/button";
+
 import {
   Actions,
-  CancelButton,
-  ConfirmButton,
   Dialog,
   Message,
   Overlay,
@@ -74,13 +74,23 @@ export function ConfirmDialog({
         <Message>{message}</Message>
 
         <Actions>
-          <CancelButton type="button" onClick={onCancel} disabled={loading}>
+          <Button
+            type="button"
+            $variant="secondary"
+            onClick={onCancel}
+            disabled={loading}
+          >
             {cancelText}
-          </CancelButton>
+          </Button>
 
-          <ConfirmButton type="button" onClick={onConfirm} disabled={loading}>
+          <Button
+            type="button"
+            $variant="danger"
+            onClick={onConfirm}
+            disabled={loading}
+          >
             {loading ? loadingText : confirmText}
-          </ConfirmButton>
+          </Button>
         </Actions>
       </Dialog>
     </Overlay>

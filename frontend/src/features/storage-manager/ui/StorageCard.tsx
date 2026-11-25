@@ -1,4 +1,6 @@
 import type { StorageInfo } from "@/entities/settings";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 
 import { displayName, formatBytes, formatDate } from "../lib/format";
 import * as F from "./StorageForms.styles";
@@ -52,13 +54,11 @@ export function StorageCard({
         </S.StorageTitleBlock>
 
         <S.StorageBadges>
-          {info.is_active && (
-            <S.StorageBadge $tone="active">Активное</S.StorageBadge>
-          )}
+          {info.is_active && <Badge $variant="primary">Активное</Badge>}
 
-          <S.StorageBadge $tone={info.exists ? "ok" : "warn"}>
+          <Badge $variant={info.exists ? "success" : "warning"}>
             {info.exists ? "Папка доступна" : "Папка не найдена"}
-          </S.StorageBadge>
+          </Badge>
         </S.StorageBadges>
       </S.StorageHeader>
 
@@ -87,13 +87,15 @@ export function StorageCard({
               onChange={(event) => onEditPathChange(event.target.value)}
             />
 
-            <F.SmallButton
+            <Button
               type="button"
+              $variant="secondary"
+              $size="sm"
               disabled={busy !== null}
               onClick={onPickFolder}
             >
               Выбрать папку…
-            </F.SmallButton>
+            </Button>
           </F.FormRow>
 
           <F.FormHint>
@@ -103,54 +105,61 @@ export function StorageCard({
           </F.FormHint>
 
           <F.FormActions>
-            <F.SmallButton
-              $primary
+            <Button
               type="button"
+              $variant="primary"
+              $size="sm"
               disabled={busy !== null}
               onClick={onSaveEdit}
             >
               {isBusy ? "Сохранение..." : "Сохранить"}
-            </F.SmallButton>
+            </Button>
 
-            <F.SmallButton
+            <Button
               type="button"
+              $variant="secondary"
+              $size="sm"
               disabled={busy !== null}
               onClick={onCancelEdit}
             >
               Отмена
-            </F.SmallButton>
+            </Button>
           </F.FormActions>
         </F.StorageInlineForm>
       ) : (
         <S.StorageActions>
           {!info.is_active && (
-            <F.SmallButton
-              $primary
+            <Button
               type="button"
+              $variant="primary"
+              $size="sm"
               disabled={busy !== null}
               onClick={onActivate}
             >
               {isBusy ? "Переключение..." : "Сделать активным"}
-            </F.SmallButton>
+            </Button>
           )}
 
-          <F.SmallButton
+          <Button
             type="button"
+            $variant="secondary"
+            $size="sm"
             disabled={busy !== null}
             onClick={onStartEdit}
           >
             Изменить
-          </F.SmallButton>
+          </Button>
 
           {!info.is_active && (
-            <F.SmallButton
-              $danger
+            <Button
               type="button"
+              $variant="dangerSoft"
+              $size="sm"
               disabled={busy !== null}
               onClick={onDelete}
             >
               Удалить
-            </F.SmallButton>
+            </Button>
           )}
         </S.StorageActions>
       )}

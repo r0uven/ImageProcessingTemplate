@@ -4,27 +4,14 @@ import { useNavigate } from "react-router-dom";
 
 import { useAppSettings } from "@/entities/settings";
 import { DatasetPairList, useDatasetPairs } from "@/features/ai-dataset";
+import { Button } from "@/shared/ui/button";
+import { Field, FieldLabel, Input, Textarea as TextArea } from "@/shared/ui/field";
+import { Page, PageContent, PageHeader, PageTitleBlock } from "@/shared/ui/page";
+import { CardTitle, PageSubtitle, PageTitle } from "@/shared/ui/typography";
 
+import { FieldsGrid, FormCard, Layout, MainColumn } from "./CreateAiPage.styles";
 import {
-  Card,
-  CardTitle,
-  Content,
-  Field,
-  FieldsGrid,
-  Header,
-  Input,
-  Label,
-  Layout,
-  MainColumn,
-  Page,
   Sidebar,
-  Subtitle,
-  TextArea,
-  Title,
-  TitleBlock,
-} from "./CreateAiPage.styles";
-import {
-  CreateButton,
   StatLabel,
   StatRow,
   StatsList,
@@ -66,24 +53,24 @@ export const CreateAiPage = () => {
 
   return (
     <Page>
-      <Content>
-        <Header>
-          <TitleBlock>
-            <Title>Создание новой нейросети</Title>
+      <PageContent $maxWidth="1400px" $padding="72px 48px 48px">
+        <PageHeader $marginBottom="40px">
+          <PageTitleBlock>
+            <PageTitle>Создание новой нейросети</PageTitle>
 
-            <Subtitle>
+            <PageSubtitle>
               Настройте параметры обучения и загрузите обучающий набор данных
-            </Subtitle>
-          </TitleBlock>
-        </Header>
+            </PageSubtitle>
+          </PageTitleBlock>
+        </PageHeader>
 
         <Layout>
           <MainColumn>
-            <Card>
+            <FormCard>
               <CardTitle>Информация о модели</CardTitle>
 
               <Field>
-                <Label>Название модели</Label>
+                <FieldLabel>Название модели</FieldLabel>
 
                 <Input
                   value={name}
@@ -93,7 +80,7 @@ export const CreateAiPage = () => {
               </Field>
 
               <Field>
-                <Label>Описание</Label>
+                <FieldLabel>Описание</FieldLabel>
 
                 <TextArea
                   value={description}
@@ -101,14 +88,14 @@ export const CreateAiPage = () => {
                   placeholder="Описание модели"
                 />
               </Field>
-            </Card>
+            </FormCard>
 
-            <Card>
+            <FormCard>
               <CardTitle>Параметры обучения</CardTitle>
 
               <FieldsGrid>
                 <Field>
-                  <Label>Количество эпох</Label>
+                  <FieldLabel>Количество эпох</FieldLabel>
 
                   <Input
                     type="number"
@@ -118,7 +105,7 @@ export const CreateAiPage = () => {
                 </Field>
 
                 <Field>
-                  <Label>Размер батча</Label>
+                  <FieldLabel>Размер батча</FieldLabel>
 
                   <Input
                     type="number"
@@ -128,7 +115,7 @@ export const CreateAiPage = () => {
                 </Field>
 
                 <Field>
-                  <Label>Learning Rate</Label>
+                  <FieldLabel>Learning Rate</FieldLabel>
 
                   <Input
                     type="number"
@@ -140,9 +127,9 @@ export const CreateAiPage = () => {
                   />
                 </Field>
               </FieldsGrid>
-            </Card>
+            </FormCard>
 
-            <Card>
+            <FormCard>
               <CardTitle>Обучающая выборка</CardTitle>
 
               <DatasetPairList
@@ -152,11 +139,11 @@ export const CreateAiPage = () => {
                 onOriginalChange={updateOriginal}
                 onMaskChange={updateMask}
               />
-            </Card>
+            </FormCard>
           </MainColumn>
 
           <Sidebar>
-            <Card>
+            <FormCard>
               <CardTitle>Статистика</CardTitle>
 
               <StatsList>
@@ -185,13 +172,18 @@ export const CreateAiPage = () => {
                 </StatRow>
               </StatsList>
 
-              <CreateButton onClick={handleCreate}>
+              <Button
+                $variant="primary"
+                $size="lg"
+                $fullWidth
+                onClick={handleCreate}
+              >
                 Создать нейросеть
-              </CreateButton>
-            </Card>
+              </Button>
+            </FormCard>
           </Sidebar>
         </Layout>
-      </Content>
+      </PageContent>
     </Page>
   );
 };

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
+
+import { useAppSettings } from "@/entities/settings";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { Page, PageContent, PageHeader, PageTitleBlock } from "@/shared/ui/page";
+import { CardTitle, PageSubtitle, PageTitle } from "@/shared/ui/typography";
+
 import {
-  Card,
-  CardTitle,
-  Content,
   Grid,
-  Header,
   InfoRow,
   Label,
   Log,
@@ -13,22 +18,14 @@ import {
   Main,
   Metric,
   Metrics,
-  Page,
   PreviewBox,
   PreviewText,
   ProgressBar,
   ProgressFill,
   ProgressInfo,
-  ResultButton,
   Sidebar,
-  StatusBadge,
-  StatusWrapper,
-  Subtitle,
-  Title,
-  TitleBlock,
   Value,
 } from "./TrainingProcessPage.styled";
-import { useAppSettings } from "@/entities/settings";
 
 type TrainingStatus = "TRAINING" | "COMPLETED" | "FAILED";
 
@@ -38,6 +35,12 @@ type TrainingProgress = {
   accuracy: number;
   logs: string[];
 };
+
+const statusVariant = {
+  TRAINING: "primary",
+  COMPLETED: "success",
+  FAILED: "danger",
+} as const;
 
 export const TrainingProcessPage = () => {
   const navigate = useNavigate();
@@ -96,17 +99,15 @@ export const TrainingProcessPage = () => {
 
   return (
     <Page>
-      <Content>
-        <Header>
-          <TitleBlock>
-            <Title>Обучение модели</Title>
-            <Subtitle>Model ID: {id}</Subtitle>
-          </TitleBlock>
+      <PageContent $maxWidth="1400px" $padding="72px 48px 48px">
+        <PageHeader $marginBottom="30px" $align="center">
+          <PageTitleBlock>
+            <PageTitle>Обучение модели</PageTitle>
+            <PageSubtitle>Model ID: {id}</PageSubtitle>
+          </PageTitleBlock>
 
-          <StatusBadge status={status}>
-            <StatusWrapper>{status}</StatusWrapper>
-          </StatusBadge>
-        </Header>
+          <Badge $variant={statusVariant[status]}>{status}</Badge>
+        </PageHeader>
 
         <Grid>
           <Main>
@@ -145,8 +146,8 @@ export const TrainingProcessPage = () => {
               <CardTitle>Журнал обучения</CardTitle>
 
               <Logs>
-                {logs.map((log, i) => (
-                  <Log key={i}>{log}</Log>
+                {logs.map((log, index) => (
+                  <Log key={index}>{log}</Log>
                 ))}
               </Logs>
             </Card>
@@ -183,9 +184,9 @@ export const TrainingProcessPage = () => {
                   принять решение о сохранении модели.
                 </PreviewText>
 
-                <ResultButton onClick={handleOpenResults}>
+                <Button $variant="primary" $fullWidth onClick={handleOpenResults}>
                   Просмотреть результаты
-                </ResultButton>
+                </Button>
               </Card>
             )}
 
@@ -203,7 +204,7 @@ export const TrainingProcessPage = () => {
             </Card>
           </Sidebar>
         </Grid>
-      </Content>
+      </PageContent>
     </Page>
   );
 };

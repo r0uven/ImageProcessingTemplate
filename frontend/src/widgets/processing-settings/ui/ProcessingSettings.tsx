@@ -1,11 +1,13 @@
 import type { ProcessingSettingsState } from "@/entities/workspace";
+import { Checkbox, CheckboxRow, Input, Select } from "@/shared/ui/field";
+
 import {
   Card,
   Field,
+  FieldLabel,
   Grid,
   Section,
   SectionTitle,
-  Toggle,
 } from "./ProcessingSettings.styled";
 
 type ProcessingSettingsProps = ProcessingSettingsState & {
@@ -15,6 +17,25 @@ type ProcessingSettingsProps = ProcessingSettingsState & {
     value: ProcessingSettingsState[T][keyof ProcessingSettingsState[T]],
   ) => void;
 };
+
+type ToggleProps = {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+function Toggle({ label, checked, onChange }: ToggleProps) {
+  return (
+    <CheckboxRow>
+      <Checkbox
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span>{label}</span>
+    </CheckboxRow>
+  );
+}
 
 export function ProcessingSettings({
   preprocessing,
@@ -29,72 +50,50 @@ export function ProcessingSettings({
 
         <Grid>
           <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={preprocessing.denoise}
-                onChange={(e) =>
-                  onChange("preprocessing", "denoise", e.target.checked)
-                }
-              />
-              <span>Удаление шума</span>
-            </Toggle>
-          </Card>
+            <Toggle
+              label="Удаление шума"
+              checked={preprocessing.denoise}
+              onChange={(checked) =>
+                onChange("preprocessing", "denoise", checked)
+              }
+            />
 
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={preprocessing.normalize}
-                onChange={(e) =>
-                  onChange("preprocessing", "normalize", e.target.checked)
-                }
-              />
-              <span>Нормализация</span>
-            </Toggle>
-          </Card>
+            <Toggle
+              label="Нормализация"
+              checked={preprocessing.normalize}
+              onChange={(checked) =>
+                onChange("preprocessing", "normalize", checked)
+              }
+            />
 
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={preprocessing.contrastEnhancement}
-                onChange={(e) =>
-                  onChange(
-                    "preprocessing",
-                    "contrastEnhancement",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Контраст</span>
-            </Toggle>
-          </Card>
+            <Toggle
+              label="Контраст"
+              checked={preprocessing.contrastEnhancement}
+              onChange={(checked) =>
+                onChange("preprocessing", "contrastEnhancement", checked)
+              }
+            />
 
-          <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={preprocessing.smoothing}
-                onChange={(e) =>
-                  onChange("preprocessing", "smoothing", e.target.checked)
-                }
-              />
-              <span>Сглаживание</span>
-            </Toggle>
+            <Toggle
+              label="Сглаживание"
+              checked={preprocessing.smoothing}
+              onChange={(checked) =>
+                onChange("preprocessing", "smoothing", checked)
+              }
+            />
 
             {preprocessing.smoothing && (
               <Field>
-                <label>Размер фильтра</label>
-                <input
+                <FieldLabel>Размер фильтра</FieldLabel>
+                <Input
                   type="number"
                   min={1}
                   value={preprocessing.filterSize}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     onChange(
                       "preprocessing",
                       "filterSize",
-                      Number(e.target.value),
+                      Number(event.target.value),
                     )
                   }
                 />
@@ -110,49 +109,46 @@ export function ProcessingSettings({
         <Grid>
           <Card>
             <Field>
-              <label>Метод</label>
-              <select
+              <FieldLabel>Метод</FieldLabel>
+              <Select
                 value={segmentation.method}
-                onChange={(e) =>
-                  onChange("segmentation", "method", e.target.value)
+                onChange={(event) =>
+                  onChange("segmentation", "method", event.target.value)
                 }
               >
                 <option value="threshold">Пороговая</option>
                 <option value="neural">Нейросеть</option>
-              </select>
+              </Select>
             </Field>
 
             {segmentation.method === "threshold" && (
               <>
                 <Field>
-                  <label>Порог</label>
-                  <input
+                  <FieldLabel>Порог</FieldLabel>
+                  <Input
                     type="number"
                     min={0}
                     max={255}
                     value={segmentation.threshold.thresholdValue}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       onChange("segmentation", "threshold", {
                         ...segmentation.threshold,
-                        thresholdValue: Number(e.target.value),
+                        thresholdValue: Number(event.target.value),
                       })
                     }
                   />
                 </Field>
 
-                <Toggle>
-                  <input
-                    type="checkbox"
-                    checked={segmentation.threshold.invert}
-                    onChange={(e) =>
-                      onChange("segmentation", "threshold", {
-                        ...segmentation.threshold,
-                        invert: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>Инверсия</span>
-                </Toggle>
+                <Toggle
+                  label="Инверсия"
+                  checked={segmentation.threshold.invert}
+                  onChange={(checked) =>
+                    onChange("segmentation", "threshold", {
+                      ...segmentation.threshold,
+                      invert: checked,
+                    })
+                  }
+                />
               </>
             )}
           </Card>
@@ -164,76 +160,45 @@ export function ProcessingSettings({
 
         <Grid>
           <Card>
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={separation.enabled}
-                onChange={(e) =>
-                  onChange("separation", "enabled", e.target.checked)
-                }
-              />
-              <span>Включено</span>
-            </Toggle>
+            <Toggle
+              label="Включено"
+              checked={separation.enabled}
+              onChange={(checked) =>
+                onChange("separation", "enabled", checked)
+              }
+            />
 
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={separation.applyOnlyToCandidates}
-                onChange={(e) =>
-                  onChange(
-                    "separation",
-                    "applyOnlyToCandidates",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Только кандидаты</span>
-            </Toggle>
+            <Toggle
+              label="Только кандидаты"
+              checked={separation.applyOnlyToCandidates}
+              onChange={(checked) =>
+                onChange("separation", "applyOnlyToCandidates", checked)
+              }
+            />
 
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={separation.preserveAutonomousPores}
-                onChange={(e) =>
-                  onChange(
-                    "separation",
-                    "preserveAutonomousPores",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Сохранять автономные</span>
-            </Toggle>
+            <Toggle
+              label="Сохранять автономные"
+              checked={separation.preserveAutonomousPores}
+              onChange={(checked) =>
+                onChange("separation", "preserveAutonomousPores", checked)
+              }
+            />
 
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={separation.keepUnseparatedCandidates}
-                onChange={(e) =>
-                  onChange(
-                    "separation",
-                    "keepUnseparatedCandidates",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Сохранять неразделённые</span>
-            </Toggle>
+            <Toggle
+              label="Сохранять неразделённые"
+              checked={separation.keepUnseparatedCandidates}
+              onChange={(checked) =>
+                onChange("separation", "keepUnseparatedCandidates", checked)
+              }
+            />
 
-            <Toggle>
-              <input
-                type="checkbox"
-                checked={separation.validateSeparationResult}
-                onChange={(e) =>
-                  onChange(
-                    "separation",
-                    "validateSeparationResult",
-                    e.target.checked,
-                  )
-                }
-              />
-              <span>Валидация результата</span>
-            </Toggle>
+            <Toggle
+              label="Валидация результата"
+              checked={separation.validateSeparationResult}
+              onChange={(checked) =>
+                onChange("separation", "validateSeparationResult", checked)
+              }
+            />
           </Card>
         </Grid>
       </Section>

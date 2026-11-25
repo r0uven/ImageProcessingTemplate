@@ -12,6 +12,8 @@ import {
   withoutStorageRegistry,
 } from "@/features/settings-editor";
 import { StorageManager } from "@/features/storage-manager";
+import { Page, PageContent, PageHeader, PageTitleBlock } from "@/shared/ui/page";
+import { PageSubtitle, PageTitle } from "@/shared/ui/typography";
 
 import { useSettingsDraft } from "../model/useSettingsDraft";
 import { SettingsActionBar } from "./SettingsActionBar";
@@ -113,19 +115,19 @@ export const SettingsPage = () => {
   };
 
   return (
-    <S.Page>
-      <S.Content>
-        <S.Header>
-          <S.TitleBlock>
-            <S.Title>Глобальные настройки</S.Title>
+    <Page>
+      <PageContent $maxWidth="1200px" $padding="72px 48px 140px">
+        <PageHeader>
+          <PageTitleBlock>
+            <PageTitle>Глобальные настройки</PageTitle>
 
-            <S.Subtitle>
+            <PageSubtitle>
               Все параметры обработки, хранения и обучения берутся из
               settings.json. Изменения сохраняются в файл и применяются без
               перезапуска backend.
-            </S.Subtitle>
-          </S.TitleBlock>
-        </S.Header>
+            </PageSubtitle>
+          </PageTitleBlock>
+        </PageHeader>
 
         <SettingsToolbar
           toolbarRef={toolbarRef}
@@ -137,8 +139,8 @@ export const SettingsPage = () => {
 
         <SettingsMetaCard meta={meta} />
 
-        {message && <S.Message>{message}</S.Message>}
-        {error && <S.Message $error>{error}</S.Message>}
+        {message && <S.PageMessage>{message}</S.PageMessage>}
+        {error && <S.PageMessage $variant="error">{error}</S.PageMessage>}
 
         {searching && (
           <S.SearchHint>
@@ -207,7 +209,7 @@ export const SettingsPage = () => {
             </SettingsSection>
           );
         })}
-      </S.Content>
+      </PageContent>
 
       <SettingsActionBar
         saving={saving}
@@ -216,6 +218,6 @@ export const SettingsPage = () => {
         onReset={reset}
         onSave={() => void handleSave()}
       />
-    </S.Page>
+    </Page>
   );
 };

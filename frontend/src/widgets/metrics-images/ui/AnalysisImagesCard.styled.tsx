@@ -1,225 +1,149 @@
 import styled from "styled-components";
 
-export const Card = styled.section`
+import { Card as SharedCard } from "@/shared/ui/card";
+import { colors, radii, spacing, transitions, typography } from "@/shared/styles/tokens";
+
+export const Card = styled(SharedCard)`
   padding: 20px 24px;
-
-  border-radius: 22px;
-
-  background: rgba(255, 255, 255, 0.035);
-
-  border: 1px solid rgba(255, 255, 255, 0.06);
-
   margin-bottom: 24px;
 `;
 
 export const TopRow = styled.div`
   display: flex;
-
   align-items: flex-end;
-
   justify-content: space-between;
-
-  gap: 16px;
-
+  gap: ${spacing.lg}px;
   flex-wrap: wrap;
 `;
 
 export const TitleBlock = styled.div`
   display: flex;
-
   flex-direction: column;
-
-  gap: 4px;
-
+  gap: ${spacing.xs}px;
   min-width: 0;
 `;
 
 export const Title = styled.h2`
   margin: 0;
-
-  font-size: 16px;
-
-  font-weight: 650;
-
+  font-size: ${typography.sizes.lg}px;
+  font-weight: ${typography.weights.semibold};
   letter-spacing: -0.2px;
 `;
 
 export const Subtitle = styled.div`
-  font-size: 12.5px;
-
-  color: rgba(255, 255, 255, 0.45);
+  font-size: ${typography.sizes.sm}px;
+  color: ${colors.textDim};
 `;
 
 export const OpenLink = styled.a`
   padding: 7px 11px;
-
-  border-radius: 10px;
-
-  border: 1px solid rgba(58, 122, 254, 0.25);
-
-  background: rgba(58, 122, 254, 0.1);
-
-  color: #9cc0ff;
-
-  font-size: 12px;
-
-  font-weight: 600;
-
+  border-radius: ${radii.sm}px;
+  border: 1px solid ${colors.primaryBorder};
+  background: ${colors.primarySoft};
+  color: ${colors.primaryText};
+  font-size: ${typography.sizes.sm}px;
+  font-weight: ${typography.weights.semibold};
   text-decoration: none;
-
-  transition: 0.2s ease;
+  transition: ${transitions.base};
 
   &:hover {
     background: rgba(58, 122, 254, 0.2);
-
-    border-color: rgba(58, 122, 254, 0.45);
-
-    color: white;
+    border-color: ${colors.primaryBorder};
+    color: ${colors.text};
   }
 `;
 
 export const OpenLinkDisabled = styled.span`
   padding: 7px 11px;
-
-  border-radius: 10px;
-
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  background: rgba(255, 255, 255, 0.035);
-
-  color: rgba(255, 255, 255, 0.38);
-
-  font-size: 12px;
-
-  font-weight: 600;
-
+  border-radius: ${radii.sm}px;
+  border: 1px solid ${colors.borderFaint};
+  background: ${colors.surfaceSoft};
+  color: ${colors.textDim};
+  font-size: ${typography.sizes.sm}px;
+  font-weight: ${typography.weights.semibold};
   cursor: not-allowed;
-
   user-select: none;
 `;
 
 export const Viewer = styled.div`
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   min-height: 220px;
-
-  margin-top: 16px;
-
-  padding: 12px;
-
-  border-radius: 18px;
-
-  border: 1px solid rgba(255, 255, 255, 0.07);
-
+  margin-top: ${spacing.lg}px;
+  padding: ${spacing.md}px;
+  border-radius: ${radii.xl}px;
+  border: 1px solid ${colors.border};
   background: rgba(0, 0, 0, 0.25);
 `;
 
 export const ViewerLink = styled.a`
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   width: 100%;
 `;
 
 export const Preview = styled.img`
   display: block;
-
   max-width: 100%;
-
   max-height: 520px;
-
   object-fit: contain;
-
-  border-radius: 10px;
+  border-radius: ${radii.sm}px;
 `;
 
 export const Thumbnails = styled.div`
   display: flex;
-
-  gap: 10px;
-
+  gap: ${spacing.sm + 2}px;
   margin-top: 14px;
-
   flex-wrap: wrap;
 `;
 
 export const ThumbButton = styled.button<{ $active: boolean }>`
   display: flex;
-
   flex-direction: column;
-
   gap: 6px;
-
   width: 124px;
-
   padding: 7px;
-
-  border-radius: 12px;
-
+  border-radius: ${radii.md}px;
   border: 1px solid
-    ${({ $active }) =>
-      $active ? "rgba(58, 122, 254, 0.6)" : "rgba(255, 255, 255, 0.08)"};
-
+    ${({ $active }) => ($active ? colors.primaryBorder : colors.borderFaint)};
   background: ${({ $active }) =>
-    $active ? "rgba(58, 122, 254, 0.14)" : "rgba(255, 255, 255, 0.03)"};
-
-  color: ${({ $active }) =>
-    $active ? "white" : "rgba(255, 255, 255, 0.65)"};
-
-  font-size: 11.5px;
-
-  font-weight: 600;
-
+    $active ? colors.primarySoft : colors.surfaceSoft};
+  color: ${({ $active }) => ($active ? colors.text : colors.textMuted)};
+  font-size: ${typography.sizes.xs}px;
+  font-weight: ${typography.weights.semibold};
   cursor: pointer;
-
-  transition: 0.2s ease;
+  transition: ${transitions.base};
 
   &:hover {
-    border-color: rgba(58, 122, 254, 0.45);
-
-    background: rgba(58, 122, 254, 0.1);
-
-    color: white;
+    border-color: ${colors.primaryBorder};
+    background: ${colors.primarySoft};
+    color: ${colors.text};
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(58, 122, 254, 0.8);
-
+    outline: 2px solid ${colors.primary};
     outline-offset: 2px;
   }
 `;
 
 export const ThumbImage = styled.img`
   display: block;
-
   width: 100%;
-
   height: 64px;
-
   object-fit: contain;
-
-  border-radius: 8px;
-
+  border-radius: ${radii.sm - 2}px;
   background: rgba(0, 0, 0, 0.3);
 `;
 
 export const ThumbLabel = styled.span`
   text-align: center;
-
   overflow-wrap: anywhere;
 `;
 
 export const Note = styled.div`
-  margin-top: 12px;
-
-  font-size: 12.5px;
-
-  color: rgba(255, 255, 255, 0.45);
+  margin-top: ${spacing.md}px;
+  font-size: ${typography.sizes.sm}px;
+  color: ${colors.textDim};
 `;

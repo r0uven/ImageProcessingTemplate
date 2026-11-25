@@ -41,7 +41,6 @@ export function SettingsUsedCard({ data }: SettingsUsedCardProps) {
         {groups.length > 0 && (
           <S.ToggleButton
             type="button"
-            $expanded={expanded}
             aria-expanded={expanded}
             onClick={() => setExpanded((previous) => !previous)}
           >

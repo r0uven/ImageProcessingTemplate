@@ -1,4 +1,5 @@
 import { labelFor } from "@/entities/settings";
+import { IconButton } from "@/shared/ui/button";
 
 import type { Json } from "../lib/settingsJson";
 import * as S from "./SettingsFields.styles";
@@ -106,19 +107,26 @@ export function ArrayEditor({
             />
           )}
 
-          <S.IconButton
+          <IconButton
             type="button"
+            $variant="danger"
+            $size={34}
             title="Удалить"
             onClick={() =>
               onChange(value.filter((_, entryIndex) => entryIndex !== index))
             }
           >
             ✕
-          </S.IconButton>
+          </IconButton>
         </S.ArrayRow>
       ))}
 
-      <S.AddButton type="button" onClick={addItem}>
+      <S.AddButton
+        type="button"
+        $variant="secondary"
+        $size="sm"
+        onClick={addItem}
+      >
         + Добавить
       </S.AddButton>
     </S.ArrayField>

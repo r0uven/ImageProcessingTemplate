@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/button";
+
 import * as S from "./SettingsPage.styles";
 
 type SettingsActionBarProps = {
@@ -27,22 +29,23 @@ export function SettingsActionBar({
               : "Все изменения сохранены"}
       </S.ActionBarStatus>
 
-      <S.Button
+      <Button
         type="button"
+        $variant="secondary"
         onClick={onReset}
         disabled={!dirty || saving}
       >
         Сбросить изменения
-      </S.Button>
+      </Button>
 
-      <S.Button
-        $primary
+      <Button
         type="button"
+        $variant="primary"
         onClick={onSave}
         disabled={!dirty || saving}
       >
         {saving ? "Сохранение..." : "Сохранить"}
-      </S.Button>
+      </Button>
     </S.ActionBar>
   );
 }

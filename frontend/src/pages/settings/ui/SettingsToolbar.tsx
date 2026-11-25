@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 
+import { Button } from "@/shared/ui/button";
+
 import * as S from "./SettingsToolbar.styles";
 
 type SettingsToolbarProps = {
@@ -31,6 +33,8 @@ export function SettingsToolbar({
         {query && (
           <S.ClearSearch
             type="button"
+            $variant="ghost"
+            $size={26}
             aria-label="Очистить поиск"
             onClick={() => onQueryChange("")}
           >
@@ -40,13 +44,13 @@ export function SettingsToolbar({
       </S.SearchBox>
 
       <S.ToolbarActions>
-        <S.ToolbarButton type="button" onClick={onExpandAll}>
+        <Button $variant="secondary" $size="sm" onClick={onExpandAll}>
           Развернуть всё
-        </S.ToolbarButton>
+        </Button>
 
-        <S.ToolbarButton type="button" onClick={onCollapseAll}>
+        <Button $variant="secondary" $size="sm" onClick={onCollapseAll}>
           Свернуть всё
-        </S.ToolbarButton>
+        </Button>
       </S.ToolbarActions>
     </S.Toolbar>
   );

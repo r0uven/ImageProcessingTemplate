@@ -1,8 +1,10 @@
+import { Message } from "@/shared/ui/message";
+import { Hint } from "@/shared/ui/typography";
+
 import { useStorageManager } from "../model/useStorageManager";
 import { AddStorageForm } from "./AddStorageForm";
 import { DeleteStorageDialog } from "./DeleteStorageDialog";
 import { StorageCard } from "./StorageCard";
-import * as F from "./StorageForms.styles";
 import * as S from "./StorageManager.styles";
 
 type StorageManagerProps = {
@@ -16,14 +18,12 @@ export function StorageManager({ onChanged }: StorageManagerProps) {
   return (
     <S.StorageList>
       {manager.error && (
-        <F.StorageMessage $error>{manager.error}</F.StorageMessage>
+        <Message $variant="error">{manager.error}</Message>
       )}
-      {manager.notice && (
-        <F.StorageMessage>{manager.notice}</F.StorageMessage>
-      )}
+      {manager.notice && <Message>{manager.notice}</Message>}
 
       {manager.loading && (
-        <F.FormHint>Загрузка реестра хранилищ...</F.FormHint>
+        <Hint>Загрузка реестра хранилищ...</Hint>
       )}
 
       {manager.infos?.map((info) => (

@@ -1,8 +1,7 @@
 import type { StorageInfo } from "@/entities/settings";
+import { Button } from "@/shared/ui/button";
 import {
   Actions,
-  CancelButton,
-  ConfirmButton,
   Dialog,
   Message,
   Overlay,
@@ -90,21 +89,23 @@ export function DeleteStorageDialog({
         )}
 
         <Actions>
-          <CancelButton
+          <Button
             type="button"
+            $variant="secondary"
             disabled={Boolean(busy)}
             onClick={onCancel}
           >
             Отмена
-          </CancelButton>
+          </Button>
 
-          <ConfirmButton
+          <Button
             type="button"
+            $variant="danger"
             disabled={Boolean(busy) || (imageCount > 0 && !deleteHistory)}
             onClick={onConfirm}
           >
             {busy ? "Удаление..." : "Удалить"}
-          </ConfirmButton>
+          </Button>
         </Actions>
       </Dialog>
     </Overlay>

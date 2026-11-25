@@ -8,6 +8,12 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 
+import {
+  colors,
+  spacing,
+  typography,
+} from "@/shared/styles/tokens";
+import { Button } from "@/shared/ui/button";
 import { getSettings, saveSettings } from "../api/settings.api";
 import type { AppSettings, SettingsEnvelope } from "./types";
 
@@ -77,10 +83,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 16,
-          background: "#0b0f14",
-          color: "white",
-          fontFamily: "system-ui, sans-serif",
+          gap: spacing.lg,
+          background: colors.background,
+          color: colors.text,
+          fontFamily: typography.fontFamily,
         }}
       >
         <h2 style={{ margin: 0 }}>
@@ -88,27 +94,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         </h2>
 
         {error && (
-          <div style={{ color: "rgba(255,255,255,0.6)", maxWidth: 620 }}>
+          <div style={{ color: colors.textMuted, maxWidth: 620 }}>
             {error}
           </div>
         )}
 
         {!loading && (
-          <button
+          <Button
             type="button"
+            $variant="primary"
             onClick={() => void load()}
-            style={{
-              padding: "12px 20px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "#3a7afe",
-              color: "white",
-              cursor: "pointer",
-              fontSize: 15,
-            }}
           >
             Повторить
-          </button>
+          </Button>
         )}
       </div>
     );

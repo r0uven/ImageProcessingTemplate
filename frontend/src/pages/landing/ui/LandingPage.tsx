@@ -9,17 +9,15 @@ import {
   type SegmentationModel,
 } from "@/entities/tool";
 import { useAsyncData } from "@/shared/lib/useAsyncData";
+import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Page, PageContent, PageHeader } from "@/shared/ui/page";
+import { PageTitle } from "@/shared/ui/typography";
 
 import {
-  PageContainer,
-  Header,
-  Title,
-  HistoryButton,
-  HeaderActions,
-  CardsGrid,
   BottomText,
-  Content,
+  CardsGrid,
+  HeaderActions,
 } from "./LandingPage.styles";
 
 export function LandingPage() {
@@ -47,8 +45,8 @@ export function LandingPage() {
 
       setTools((prev) => prev?.filter((tool) => tool.model_id !== id) ?? null);
       setPendingDelete(null);
-    } catch (error) {
-      console.error("Ошибка удаления:", error);
+    } catch (cause) {
+      console.error("Ошибка удаления:", cause);
       alert("Не удалось удалить модель. Проверьте консоль.");
     } finally {
       setIsDeleting(false);
@@ -56,29 +54,31 @@ export function LandingPage() {
   }
 
   return (
-    <PageContainer>
-      <Content>
-        <Header>
-          <Title>Анализ пористой структуры</Title>
+    <Page>
+      <PageContent $maxWidth="none" $padding="48px" $flex>
+        <PageHeader $marginBottom="70px" $align="center">
+          <PageTitle>Анализ пористой структуры</PageTitle>
 
           <HeaderActions>
-            <HistoryButton
+            <Button
+              $variant="secondary"
               onClick={() => {
                 navigate("/settings");
               }}
             >
               Настройки
-            </HistoryButton>
+            </Button>
 
-            <HistoryButton
+            <Button
+              $variant="secondary"
               onClick={() => {
                 navigate("/history");
               }}
             >
               Предыдущие обработки
-            </HistoryButton>
+            </Button>
           </HeaderActions>
-        </Header>
+        </PageHeader>
 
         <CardsGrid>
           {(tools ?? []).map((tool) => (
@@ -101,7 +101,7 @@ export function LandingPage() {
         </CardsGrid>
 
         <BottomText>Выберите способ обработки</BottomText>
-      </Content>
+      </PageContent>
 
       <ConfirmDialog
         open={pendingDelete !== null}
@@ -116,6 +116,6 @@ export function LandingPage() {
           if (!isDeleting) setPendingDelete(null);
         }}
       />
-    </PageContainer>
+    </Page>
   );
 }

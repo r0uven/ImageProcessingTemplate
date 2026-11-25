@@ -1,6 +1,7 @@
 import type { DistributionPoint, DistributionType } from "@/entities/analysis";
 import { DecimalsSelect } from "@/shared/ui/decimals-select";
 import { DistributionChart } from "@/shared/ui/distribution-chart";
+import { SegmentedButton } from "@/shared/ui/segmented";
 
 import {
   DISTRIBUTION_META,
@@ -58,13 +59,13 @@ export function DistributionCard({
         <>
           <S.ModeButtons>
             {availableDistributions.map((distributionType) => (
-              <S.ModeButton
+              <SegmentedButton
                 key={distributionType}
                 $active={activeDistribution === distributionType}
                 onClick={() => onSelectDistribution(distributionType)}
               >
                 {DISTRIBUTION_META[distributionType].title}
-              </S.ModeButton>
+              </SegmentedButton>
             ))}
           </S.ModeButtons>
 
