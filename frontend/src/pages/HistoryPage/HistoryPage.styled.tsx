@@ -267,6 +267,52 @@ export const ViewButton = styled.button`
   &:active {
     transform: scale(0.98);
   }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.08);
+
+    color: rgba(255, 255, 255, 0.4);
+
+    cursor: not-allowed;
+
+    transform: none;
+  }
+`;
+
+export const NoPreview = styled.div`
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 14px;
+
+  color: rgba(255, 255, 255, 0.35);
+`;
+
+export const FailureReason = styled.div`
+  margin: 0 0 18px;
+
+  padding: 10px 14px;
+
+  border-radius: 12px;
+
+  border: 1px solid rgba(255, 112, 112, 0.25);
+
+  background: rgba(255, 112, 112, 0.08);
+
+  color: #ff9d9d;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
 `;
 
 export const EmptyState = styled.div`

@@ -28,6 +28,15 @@ class AnalysisRepository:
         # context prevents orphaned results when a later insert fails.
         try:
             with self.db:
+                # Если этот запуск ранее падал, успешная попытка должна
+                # заменить запись о неудаче, а не упасть на PRIMARY KEY.
+                self.db.execute(
+                    """
+                    DELETE FROM analysis_runs
+                    WHERE run_id = ? AND status = 'FAILED'
+                    """,
+                    (run.run_id,),
+                )
                 self.db.execute(
                     """
                     INSERT INTO processing_parameters (
@@ -79,9 +88,10 @@ class AnalysisRepository:
                         created_at,
                         settings_snapshot,
                         duration,
-                        status
+                        status,
+                        error_message
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         run.run_id,
@@ -93,6 +103,7 @@ class AnalysisRepository:
                         run.settings_snapshot,
                         run.duration,
                         run.status,
+                        run.error_message,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -103,11 +114,65 @@ class AnalysisRepository:
             raise
 
     def run_exists(self, run_id: str) -> bool:
+        """Успешный запуск уже сохранён и может быть переиспользован.
+
+        Неудачные попытки намеренно не считаются существующим результатом:
+        повторный анализ того же изображения должен попробовать снова.
+        """
         cursor = self.db.execute(
-            "SELECT 1 FROM analysis_runs WHERE run_id = ?",
+            """
+            SELECT 1 FROM analysis_runs
+            WHERE run_id = ?
+              AND status = 'SUCCESS'
+              AND analysis_result_id IS NOT NULL
+            """,
             (run_id,),
         )
         return cursor.fetchone() is not None
+
+    def record_failure(self, run: AnalysisRunModel) -> None:
+        """Сохраняет неудачную попытку анализа.
+
+        У неудачного запуска нет analysis_results и processing_parameters,
+        поэтому соответствующие ссылки остаются NULL. Если успешный запуск
+        с тем же run_id уже есть, запись о неудаче не перезаписывает его.
+        """
+        self.db.execute(
+            """
+            INSERT INTO analysis_runs (
+                run_id,
+                image_id,
+                model_id,
+                params_id,
+                analysis_result_id,
+                created_at,
+                settings_snapshot,
+                duration,
+                status,
+                error_message
+            )
+            VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, 'FAILED', ?)
+            ON CONFLICT(run_id) DO UPDATE SET
+                created_at = excluded.created_at,
+                settings_snapshot = excluded.settings_snapshot,
+                duration = excluded.duration,
+                status = 'FAILED',
+                error_message = excluded.error_message,
+                params_id = NULL,
+                analysis_result_id = NULL
+            WHERE analysis_runs.status != 'SUCCESS'
+            """,
+            (
+                run.run_id,
+                run.image_id,
+                run.model_id,
+                run.created_at,
+                run.settings_snapshot,
+                run.duration,
+                run.error_message,
+            ),
+        )
+        self.db.commit()
 
     def get_run_ids_by_image(self, image_id: str) -> list[str]:
         """Возвращает все запуски анализа, привязанные к изображению."""
@@ -185,13 +250,14 @@ class AnalysisRepository:
                 img.file_path,
                 img.width,
                 img.height,
-                result.pore_count,
+                COALESCE(result.pore_count, 0),
                 img.original_image_name,
                 run.duration,
-                run.status
+                run.status,
+                run.error_message
             FROM analysis_runs run
             JOIN images img ON img.image_id = run.image_id
-            JOIN analysis_results result
+            LEFT JOIN analysis_results result
                 ON result.analysis_result_id = run.analysis_result_id
             ORDER BY run.created_at DESC
             """
@@ -209,6 +275,7 @@ class AnalysisRepository:
                 original_image_name=row[8],
                 duration=float(row[9] or 0.0),
                 status=row[10] or "SUCCESS",
+                error_message=row[11],
             )
             for row in cursor.fetchall()
         ]
@@ -232,13 +299,17 @@ class AnalysisRepository:
         # Маски, объекты и поры удаляются каскадно через внешние ключи.
         with self.db:
             self.db.execute("DELETE FROM analysis_runs WHERE run_id = ?", (run_id,))
-            self.db.execute(
-                "DELETE FROM analysis_results WHERE analysis_result_id = ?",
-                (analysis_result_id,),
-            )
-            self.db.execute(
-                "DELETE FROM processing_parameters WHERE params_id = ?",
-                (params_id,),
-            )
+
+            if analysis_result_id is not None:
+                self.db.execute(
+                    "DELETE FROM analysis_results WHERE analysis_result_id = ?",
+                    (analysis_result_id,),
+                )
+
+            if params_id is not None:
+                self.db.execute(
+                    "DELETE FROM processing_parameters WHERE params_id = ?",
+                    (params_id,),
+                )
 
         return True

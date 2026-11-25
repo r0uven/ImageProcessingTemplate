@@ -137,6 +137,11 @@ def _persist_image(
                 file_path=str(file_path),
                 width=int(original_image.shape[1]),
                 height=int(original_image.shape[0]),
+                # TODO(images.scale_value): масштаб конкретного изображения
+                # пока не задаётся, поэтому всегда 1.0. Когда появится
+                # per-image масштаб, брать его из запроса загрузки/настроек
+                # и писать сюда (сейчас используется только глобальный
+                # feature_extraction.scale_mm_per_pixel).
                 scale_value=1.0,
                 content_hash=content_hash,
                 original_image_name=original_image_name,

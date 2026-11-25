@@ -178,6 +178,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "cleanup_interval_minutes": 30,
         "cleanup_max_deletions_per_run": 25,
     },
+    # TODO(training): раздел пока не используется backend-кодом. Нет обучения,
+    # регистрации модели и записи результата в segmentation_models.
     "training": {
         "dataset_pair_format": "image_mask",
         "validate_image_mask_size": True,

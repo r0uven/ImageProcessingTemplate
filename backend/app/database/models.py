@@ -26,6 +26,7 @@ class AnalysisRunModel:
     settings_snapshot: str | None = None
     duration: float = 0.0
     status: str = "SUCCESS"
+    error_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,17 @@ class HistoryRunRecord:
     original_image_name: str | None
     duration: float = 0.0
     status: str = "SUCCESS"
+    error_message: str | None = None
+
+
+@dataclass(frozen=True)
+class MaskModel:
+    """Метаданные сохранённой маски конкретного запуска анализа."""
+
+    mask_id: str
+    run_id: str
+    mask_type: Literal["raw", "cleaned"]
+    file_path: str
 
 
 @dataclass

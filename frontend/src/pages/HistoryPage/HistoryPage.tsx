@@ -170,7 +170,11 @@ export const HistoryPage = () => {
           {filteredHistory.map((item) => (
             <S.Card key={item.run_id}>
               <S.ImagePreview>
-                <img src={buildMediaUrl(item.previewUrl) ?? ""} alt="" />
+                {item.previewUrl ? (
+                  <img src={buildMediaUrl(item.previewUrl) ?? ""} alt="" />
+                ) : (
+                  <S.NoPreview>Нет превью</S.NoPreview>
+                )}
               </S.ImagePreview>
 
               <S.CardContent>
@@ -178,7 +182,10 @@ export const HistoryPage = () => {
                   <S.FileName>{item.filename}</S.FileName>
 
                   <S.CardActions>
-                    <S.Status success={item.status === "SUCCESS"}>
+                    <S.Status
+                      success={item.status === "SUCCESS"}
+                      title={item.error ?? undefined}
+                    >
                       {item.status === "SUCCESS" ? "Успешно" : "Ошибка"}
                     </S.Status>
 
@@ -217,11 +224,20 @@ export const HistoryPage = () => {
                   </S.InfoItem>
                 </S.InfoGrid>
 
+                {item.status === "FAILED" && item.error && (
+                  <S.FailureReason title={item.error}>
+                    {item.error}
+                  </S.FailureReason>
+                )}
+
                 <S.Actions>
                   <S.ViewButton
+                    disabled={item.status === "FAILED"}
                     onClick={() => navigate(`/metrics/${item.run_id}`)}
                   >
-                    Просмотреть результат
+                    {item.status === "FAILED"
+                      ? "Результат недоступен"
+                      : "Просмотреть результат"}
                   </S.ViewButton>
                 </S.Actions>
               </S.CardContent>

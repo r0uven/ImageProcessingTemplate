@@ -4,6 +4,7 @@ from fastapi import Depends, Request
 
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.image_repository import ImageRepository
+from app.database.repositories.mask_repository import MaskRepository
 from app.database.repositories.tool_repository import ToolRepository
 from app.modules.image_loader.image_loader import ImageLoader
 from app.modules.visualisation.overlay_renderer import OverlayRenderer
@@ -35,6 +36,10 @@ def get_analysis_repository(request: Request) -> AnalysisRepository:
     return request.app.state.analysis_repository
 
 
+def get_mask_repository(request: Request) -> MaskRepository:
+    return request.app.state.mask_repository
+
+
 def get_tool_repository(request: Request) -> ToolRepository:
     return request.app.state.tool_repository
 
@@ -45,4 +50,5 @@ PipelineDep = Annotated[AnalysisPipeline, Depends(get_analysis_pipeline)]
 OverlayDep = Annotated[OverlayRenderer, Depends(get_overlay_renderer)]
 ImageRepositoryDep = Annotated[ImageRepository, Depends(get_image_repository)]
 AnalysisRepositoryDep = Annotated[AnalysisRepository, Depends(get_analysis_repository)]
+MaskRepositoryDep = Annotated[MaskRepository, Depends(get_mask_repository)]
 ToolRepositoryDep = Annotated[ToolRepository, Depends(get_tool_repository)]

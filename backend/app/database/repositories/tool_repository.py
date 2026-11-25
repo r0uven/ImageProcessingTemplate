@@ -2,6 +2,12 @@ import sqlite3
 
 from app.database.models import SegmentationModel
 
+# TODO(segmentation_models): создание и обновление моделей пока не реализованы.
+# Нужен backend-эндпоинт загрузки/обучения модели, который заполнит
+# model_path, material, image, removable и выполнит INSERT/UPDATE.
+# Сейчас таблица только читается и удаляется, а default_model создаётся
+# миграцией 001_initial.sql.
+
 _COLUMNS = """
     model_id,
     model_name,

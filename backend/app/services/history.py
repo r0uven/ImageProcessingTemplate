@@ -57,6 +57,15 @@ def list_history(
     history = []
     preview_type = _preview_image_type()
     for run in analysis_repository.get_all_runs():
+        status = _run_status(run, storage)
+        error = run.error_message
+        if status == "FAILED" and not error:
+            error = (
+                "Файл оригинала недоступен"
+                if run.status == "SUCCESS"
+                else "Анализ завершился с ошибкой"
+            )
+
         history.append(
             {
                 "run_id": run.run_id,
@@ -70,10 +79,11 @@ def list_history(
                 "duration": round(run.duration, 3),
                 "width": run.width,
                 "height": run.height,
-                "status": _run_status(run, storage),
+                "status": status,
+                "error": error,
                 "previewUrl": (
                     f"/analysis/{run.run_id}/images/{preview_type}"
-                    if preview_type is not None
+                    if status == "SUCCESS" and preview_type is not None
                     else None
                 ),
             }
