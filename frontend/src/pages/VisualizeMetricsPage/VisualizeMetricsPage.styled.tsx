@@ -104,6 +104,57 @@ export const ImageInfoText = styled.div`
   }
 `;
 
+export const SectionTabs = styled.div`
+  display: flex;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+
+  margin-bottom: 28px;
+`;
+
+export const SectionTab = styled.button<{ $active: boolean }>`
+  height: 48px;
+
+  padding: 0 22px;
+
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(58, 122, 254, 0.55)" : "rgba(255, 255, 255, 0.08)"};
+
+  border-radius: 14px;
+
+  background: ${({ $active }) =>
+    $active ? "rgba(58, 122, 254, 0.18)" : "rgba(255, 255, 255, 0.035)"};
+
+  color: ${({ $active }) =>
+    $active ? "white" : "rgba(255, 255, 255, 0.6)"};
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+
+  &:hover {
+    color: white;
+
+    border-color: rgba(58, 122, 254, 0.45);
+
+    background: ${({ $active }) =>
+      $active ? "rgba(58, 122, 254, 0.24)" : "rgba(255, 255, 255, 0.07)"};
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(58, 122, 254, 0.8);
+
+    outline-offset: 2px;
+  }
+`;
+
 export const ChartCard = styled.div`
   padding: 28px;
 
@@ -113,15 +164,47 @@ export const ChartCard = styled.div`
 
   border: 1px solid rgba(255, 255, 255, 0.06);
 
-  margin-bottom: 28px;
+  margin-bottom: 36px;
+`;
+
+export const ChartHeader = styled.div`
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  flex-wrap: wrap;
+
+  margin-bottom: 22px;
+`;
+
+export const ChartHeaderText = styled.div`
+  flex: 1 1 280px;
+
+  min-width: 0;
+`;
+
+export const CardHeader = styled.div<{ $compact?: boolean }>`
+  margin-bottom: ${({ $compact }) => ($compact ? "0" : "22px")};
 `;
 
 export const CardTitle = styled.h2`
-  margin: 0 0 22px;
+  margin: 0;
 
   font-size: 22px;
 
   font-weight: 600;
+`;
+
+export const CardSubtitle = styled.div`
+  margin-top: 8px;
+
+  font-size: 13px;
+
+  color: rgba(255, 255, 255, 0.5);
 `;
 
 export const ModeButtons = styled.div`
@@ -213,11 +296,27 @@ export const Label = styled.div`
 `;
 
 export const Value = styled.div`
+  display: flex;
+
+  align-items: baseline;
+
+  gap: 6px;
+
   font-size: 26px;
 
   font-weight: 700;
 
   color: #3a7afe;
+
+  overflow-wrap: anywhere;
+`;
+
+export const ValueUnit = styled.span`
+  font-size: 12.5px;
+
+  font-weight: 500;
+
+  color: rgba(255, 255, 255, 0.45);
 `;
 
 export const Actions = styled.div`

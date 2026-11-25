@@ -124,11 +124,39 @@ export interface AnalysisImage {
   url: string;
 }
 
+export type PoreTableRow = {
+  index: number;
+  objectId: number;
+  area: number;
+  equivalentRadius: number;
+  centerX: number | null;
+  centerY: number | null;
+};
+
+export type PoreSummary = {
+  poreCount: number;
+  totalPoreArea: number;
+  porosityPercent: number;
+  meanPoreArea: number;
+  meanEquivalentRadius: number;
+  minEquivalentRadius: number;
+  maxEquivalentRadius: number;
+};
+
+export type MetricUnits = {
+  length: string;
+  area: string;
+  coordinates: string;
+};
+
 export interface ProcessingMetrics {
   filename: string;
   detectedObjects: number;
   settingsUsed: SettingsUsed | null;
   images: AnalysisImage[];
+  summary: PoreSummary;
+  pores: PoreTableRow[];
+  units: MetricUnits;
   distributions: Record<DistributionType, DistributionPoint[]>;
   statistics: Record<DistributionType, DistributionStatistics>;
 }

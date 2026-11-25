@@ -128,18 +128,14 @@ export const ActionBarStatus = styled.div<{
     border-radius: 50%;
 
     background: ${({ $dirty, $error }) =>
-      $error
-        ? "#ff5d5d"
-        : $dirty
-          ? "#f0b35b"
-          : "rgba(74, 222, 128, 0.85)"};
+      $error ? "#ff5d5d" : $dirty ? "#f0b35b" : "rgba(74, 222, 128, 0.85)"};
   }
 `;
 
 export const Toolbar = styled.div`
   position: sticky;
 
-  top: 24px;
+  top: 14px;
 
   z-index: 20;
 
@@ -170,7 +166,7 @@ export const Toolbar = styled.div`
   transition: margin-left 0.18s ease;
 
   &[data-stuck="true"] {
-    margin-left: 96px;
+    margin-left: 76px;
   }
 
   @media (max-width: 720px) {

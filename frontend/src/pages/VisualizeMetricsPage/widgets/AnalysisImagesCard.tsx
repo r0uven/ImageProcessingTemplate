@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { isTauri } from "@tauri-apps/api/core";
+
 import { buildMediaUrl } from "@/api/client";
 import type { AnalysisImage, AnalysisImageType } from "@/api/types";
 import * as S from "./AnalysisImagesCard.styled";
@@ -25,6 +27,7 @@ type AnalysisImagesCardProps = {
 
 export function AnalysisImagesCard({ images = [] }: AnalysisImagesCardProps) {
   const [selected, setSelected] = useState<AnalysisImageType | null>(null);
+  const isDesktopApp = isTauri();
 
   const active =
     images.find((image) => image.type === selected) ??
@@ -58,32 +61,48 @@ export function AnalysisImagesCard({ images = [] }: AnalysisImagesCardProps) {
           <S.Subtitle>Сохранённые этапы этого запуска</S.Subtitle>
         </S.TitleBlock>
 
-        {activeUrl && (
-          <S.OpenLink
-            href={activeUrl}
-            target="_blank"
-            rel="noreferrer"
-            title="Открыть изображение в новой вкладке"
-          >
-            Открыть в полном размере
-          </S.OpenLink>
-        )}
+        {activeUrl &&
+          (isDesktopApp ? (
+            <S.OpenLinkDisabled
+              aria-disabled="true"
+              title="Открытие изображений во вкладке недоступно в десктопном приложении"
+            >
+              Открыть в полном размере
+            </S.OpenLinkDisabled>
+          ) : (
+            <S.OpenLink
+              href={activeUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Открыть изображение в новой вкладке"
+            >
+              Открыть в полном размере
+            </S.OpenLink>
+          ))}
       </S.TopRow>
 
       {activeUrl && (
         <S.Viewer>
-          <S.ViewerLink
-            href={activeUrl}
-            target="_blank"
-            rel="noreferrer"
-            title="Открыть изображение в новой вкладке"
-          >
+          {isDesktopApp ? (
             <S.Preview
               src={activeUrl}
               alt={IMAGE_LABELS[active.type]}
               aria-label={IMAGE_LABELS[active.type]}
             />
-          </S.ViewerLink>
+          ) : (
+            <S.ViewerLink
+              href={activeUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Открыть изображение в новой вкладке"
+            >
+              <S.Preview
+                src={activeUrl}
+                alt={IMAGE_LABELS[active.type]}
+                aria-label={IMAGE_LABELS[active.type]}
+              />
+            </S.ViewerLink>
+          )}
         </S.Viewer>
       )}
 

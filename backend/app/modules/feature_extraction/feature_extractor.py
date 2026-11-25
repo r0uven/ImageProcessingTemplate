@@ -5,7 +5,6 @@ from app.pipeline.pipeline_context import PipelineContext
 class FeatureExtractor:
     def extract(self, context: PipelineContext) -> PipelineContext:
         settings = APP_SETTINGS["feature_extraction"]
-        summary_settings = settings["summary_statistics"]
 
         objects = context.objects
 
@@ -13,20 +12,8 @@ class FeatureExtractor:
             raise ValueError("Objects have not been detected yet")
 
         # =========================================================
-        # Areas and Diameters
+        # Areas, radii and centers
         # =========================================================
-
-        pore_areas = []
-        pore_diameters = []
-
-        for obj in objects:
-            pore_areas.append(obj.area)
-            pore_diameters.append(obj.equivalent_diameter)
-
-        pore_count = len(objects)
-
-        mean_area = sum(pore_areas) / pore_count if pore_count else 0.0
-        mean_diameter = sum(pore_diameters) / pore_count if pore_count else 0.0
 
         # Пересчёт пикселей в метрические единицы, если задан масштаб.
         scale = (
@@ -34,11 +21,43 @@ class FeatureExtractor:
             if settings["use_scale"] and settings["scale_mm_per_pixel"] is not None
             else None
         )
-        if scale is not None:
-            pore_areas = [area * scale**2 for area in pore_areas]
-            pore_diameters = [diameter * scale for diameter in pore_diameters]
-            mean_area *= scale**2
-            mean_diameter *= scale
+        length_unit = "мм" if scale is not None else "px"
+        area_unit = "мм²" if scale is not None else "px²"
+
+        pore_areas = []
+        pore_diameters = []
+        pore_rows = []
+
+        for obj in objects:
+            area = obj.area * scale**2 if scale is not None else obj.area
+            diameter = (
+                obj.equivalent_diameter * scale
+                if scale is not None
+                else obj.equivalent_diameter
+            )
+            equivalent_radius = diameter / 2
+
+            # regionprops возвращает центроид как (строка, столбец), а в
+            # таблице результатов координаты привычнее видеть как (x, y).
+            center_x = float(obj.centroid[1]) if obj.centroid is not None else None
+            center_y = float(obj.centroid[0]) if obj.centroid is not None else None
+
+            pore_areas.append(area)
+            pore_diameters.append(diameter)
+            pore_rows.append(
+                {
+                    "object_id": obj.object_id,
+                    "area": float(area),
+                    "equivalent_radius": float(equivalent_radius),
+                    "center_x": center_x,
+                    "center_y": center_y,
+                }
+            )
+
+        pore_count = len(objects)
+
+        mean_area = sum(pore_areas) / pore_count if pore_count else 0.0
+        mean_diameter = sum(pore_diameters) / pore_count if pore_count else 0.0
 
         # =========================================================
         # Porosity
@@ -55,30 +74,24 @@ class FeatureExtractor:
         # Analysis result
         # =========================================================
 
-        # Количество обнаруженных объектов всегда нужно интерфейсу.
+        # Базовый набор метрик нужен интерфейсу всегда, поэтому он
+        # сохраняется независимо от дополнительных настроек статистики.
         context.analysis_result.pore_count = pore_count
+        context.analysis_result.area = mean_area
+        context.analysis_result.diameter = mean_diameter
+        context.analysis_result.porosity = porosity
 
-        if not settings["calculate_summary_statistics"]:
-            return context
-
-        if summary_settings["mean_area"]:
-            context.analysis_result.area = mean_area
-            context.analysis_result.diameter = mean_diameter
-
-        if summary_settings["porosity"]:
-            context.analysis_result.porosity = porosity
-
-        # =========================================================
-        # Size distribution
-        # =========================================================
-
-        if summary_settings["size_distribution"]:
-            context.analysis_result.size_distribution = {
-                "count": pore_count,
-                "areas": pore_areas,
-                "diameters": pore_diameters,
-            }
-        else:
-            context.analysis_result.size_distribution = {}
+        context.analysis_result.size_distribution = {
+            "count": pore_count,
+            "areas": pore_areas,
+            "diameters": pore_diameters,
+            "total_area": pore_area_sum,
+            "image_area": image_area,
+            "porosity": porosity,
+            "pores": pore_rows,
+            "length_unit": length_unit,
+            "area_unit": area_unit,
+            "coordinates_unit": "px",
+        }
 
         return context

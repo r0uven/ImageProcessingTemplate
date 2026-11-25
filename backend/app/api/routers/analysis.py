@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app.api.constants import AnalysisImageType
 from app.api.dependencies import (
@@ -11,7 +11,7 @@ from app.api.dependencies import (
 from app.schemas.analyze_request import AnalyzeRequest
 from app.services.analysis import AnalysisService
 from app.services.image_conversion import png_response
-from app.services.metrics import build_metrics
+from app.services.metrics import build_metrics, build_pores_csv
 
 router = APIRouter(prefix="/analysis")
 
@@ -70,3 +70,26 @@ def get_analysis_metrics(
         raise HTTPException(status_code=404, detail="Analysis not found")
 
     return build_metrics(record, storage)
+
+
+@router.get("/{run_id}/export/csv")
+def export_analysis_csv(
+    run_id: str,
+    analysis_repository: AnalysisRepositoryDep,
+    storage: StorageDep,
+) -> Response:
+    """Выгружает базовые метрики и таблицу пор в CSV."""
+    record = analysis_repository.get_analysis_result(run_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    csv_text = build_pores_csv(record, storage)
+
+    return Response(
+        content=csv_text,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="pores_{run_id}.csv"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
