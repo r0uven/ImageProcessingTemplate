@@ -2,12 +2,20 @@ import { useState } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
-import { getProcessingMetrics, type DistributionType } from "@/entities/analysis";
+import {
+  getProcessingMetrics,
+  type DistributionType,
+} from "@/entities/analysis";
 import { clearAllWorkspaceStates } from "@/entities/workspace";
 import { readStoredDecimals, storeDecimals } from "@/shared/lib/decimals";
 import { useAsyncData } from "@/shared/lib/useAsyncData";
 import { Button } from "@/shared/ui/button";
-import { Page, PageContent, PageHeader, PageTitleBlock } from "@/shared/ui/page";
+import {
+  Page,
+  PageContent,
+  PageHeader,
+  PageTitleBlock,
+} from "@/shared/ui/page";
 import { SegmentedButton } from "@/shared/ui/segmented";
 import { PageSubtitle, PageTitle } from "@/shared/ui/typography";
 import {
@@ -29,7 +37,8 @@ import * as S from "./MetricsPage.styles";
 export const ProcessingMetricsPage = () => {
   const navigate = useNavigate();
 
-  const [activeSection, setActiveSection] = useState<Section>("characteristics");
+  const [activeSection, setActiveSection] =
+    useState<Section>("characteristics");
   const [selectedDistribution, setSelectedDistribution] =
     useState<DistributionType>("PORE_SIZE");
   const [chartDecimals, setChartDecimals] = useState<number>(() =>
@@ -61,10 +70,9 @@ export const ProcessingMetricsPage = () => {
 
   // Возврат к настройкам предыдущей обработки: страница обработки сохраняет
   // своё состояние, поэтому изображение и параметры останутся на месте.
+  // TODO(training): если переход идет через страницу истории, то нужно дать возможность применить и поменять локальные настройки для выбранной обработки
   const goBackToWorkspace = () => {
-    const historyIndex = (
-      window.history.state as { idx?: number } | null
-    )?.idx;
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
 
     if (typeof historyIndex === "number" && historyIndex > 0) {
       navigate(-1);
@@ -134,7 +142,9 @@ export const ProcessingMetricsPage = () => {
           <PageTitleBlock>
             <PageTitle>Статистический анализ результатов сегментации</PageTitle>
 
-            <PageSubtitle>Анализ характеристик обнаруженных объектов</PageSubtitle>
+            <PageSubtitle>
+              Анализ характеристик обнаруженных объектов
+            </PageSubtitle>
           </PageTitleBlock>
 
           <S.ImageInfoCard>
