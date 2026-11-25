@@ -837,3 +837,350 @@ export const JsonError = styled.div`
 
   color: #ff9d9d;
 `;
+
+/* ------------------------------------------------------------------ */
+/* Реестр хранилищ                                                     */
+/* ------------------------------------------------------------------ */
+
+export const StorageSection = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 20px;
+
+  margin-bottom: 24px;
+`;
+
+export const StorageList = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 14px;
+`;
+
+export const StorageCard = styled.article<{ $active?: boolean }>`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 14px;
+
+  padding: 18px 20px;
+
+  border-radius: 16px;
+
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(58, 122, 254, 0.55)" : "rgba(255, 255, 255, 0.07)"};
+
+  background: ${({ $active }) =>
+    $active ? "rgba(58, 122, 254, 0.1)" : "rgba(0, 0, 0, 0.18)"};
+`;
+
+export const StorageHeader = styled.div`
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  flex-wrap: wrap;
+`;
+
+export const StorageTitleBlock = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  min-width: 0;
+`;
+
+export const StorageNameRow = styled.div`
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+`;
+
+export const StorageName = styled.span`
+  font-size: 15px;
+
+  font-weight: 650;
+
+  color: white;
+`;
+
+export const StorageId = styled.span`
+  font-size: 12px;
+
+  color: rgba(255, 255, 255, 0.35);
+`;
+
+export const StoragePath = styled.code`
+  font-size: 12px;
+
+  line-height: 1.5;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  overflow-wrap: anywhere;
+`;
+
+export const StorageBadges = styled.div`
+  display: flex;
+
+  gap: 8px;
+
+  flex-wrap: wrap;
+`;
+
+export const StorageBadge = styled.span<{
+  $tone?: "active" | "ok" | "warn" | "muted";
+}>`
+  padding: 4px 10px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  ${({ $tone = "muted" }) => {
+    if ($tone === "active") {
+      return `
+        border: 1px solid rgba(58, 122, 254, 0.5);
+        background: rgba(58, 122, 254, 0.18);
+        color: #9dc0ff;
+      `;
+    }
+
+    if ($tone === "ok") {
+      return `
+        border: 1px solid rgba(80, 200, 140, 0.35);
+        background: rgba(80, 200, 140, 0.12);
+        color: #8fe3b6;
+      `;
+    }
+
+    if ($tone === "warn") {
+      return `
+        border: 1px solid rgba(255, 190, 80, 0.4);
+        background: rgba(255, 190, 80, 0.12);
+        color: #ffd28a;
+      `;
+    }
+
+    return `
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.55);
+    `;
+  }}
+`;
+
+export const StorageStats = styled.div`
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px 20px;
+
+  font-size: 13px;
+
+  color: rgba(255, 255, 255, 0.55);
+`;
+
+export const StorageActions = styled.div`
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+`;
+
+export const SmallButton = styled.button<{
+  $danger?: boolean;
+  $primary?: boolean;
+}>`
+  padding: 8px 14px;
+
+  border-radius: 10px;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:disabled {
+    opacity: 0.5;
+
+    cursor: not-allowed;
+  }
+
+  ${({ $danger, $primary }) => {
+    if ($danger) {
+      return `
+        border: 1px solid rgba(255, 93, 93, 0.32);
+        background: rgba(255, 93, 93, 0.1);
+        color: #ffb4b4;
+
+        &:hover:not(:disabled) {
+          background: rgba(255, 93, 93, 0.2);
+        }
+      `;
+    }
+
+    if ($primary) {
+      return `
+        border: 1px solid rgba(58, 122, 254, 0.5);
+        background: rgba(58, 122, 254, 0.2);
+        color: #cfe0ff;
+
+        &:hover:not(:disabled) {
+          background: rgba(58, 122, 254, 0.32);
+        }
+      `;
+    }
+
+    return `
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.8);
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    `;
+  }}
+`;
+
+export const StorageForm = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+
+  padding: 18px 20px;
+
+  border-radius: 16px;
+
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+
+  background: rgba(0, 0, 0, 0.16);
+`;
+
+export const FormTitle = styled.div`
+  font-size: 14px;
+
+  font-weight: 650;
+
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+export const FormRow = styled.div`
+  display: flex;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+`;
+
+export const FormInput = styled(Input)`
+  flex: 1;
+
+  min-width: 220px;
+`;
+
+export const FormActions = styled.div`
+  display: flex;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+`;
+
+export const FormHint = styled.div`
+  font-size: 12px;
+
+  line-height: 1.5;
+
+  color: rgba(255, 49, 49, 0.75);
+`;
+
+export const StorageMessage = styled.div<{ $error?: boolean }>`
+  padding: 10px 14px;
+
+  border-radius: 11px;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
+
+  border: 1px solid
+    ${({ $error }) =>
+      $error ? "rgba(255, 93, 93, 0.3)" : "rgba(80, 200, 140, 0.28)"};
+
+  background: ${({ $error }) =>
+    $error ? "rgba(255, 93, 93, 0.1)" : "rgba(80, 200, 140, 0.08)"};
+
+  color: ${({ $error }) => ($error ? "#ffb4b4" : "#8fe3b6")};
+`;
+
+export const StorageInlineForm = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+
+  padding: 14px 16px;
+
+  border-radius: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: rgba(0, 0, 0, 0.22);
+`;
+
+export const DialogChecks = styled.div`
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin: 0 0 22px;
+`;
+
+export const DialogHint = styled.div`
+  margin: -8px 0 20px;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+
+  color: rgba(255, 255, 255, 0.45);
+`;

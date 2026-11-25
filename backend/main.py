@@ -9,10 +9,12 @@ from app.database.connection import get_connection
 from app.database.migrator import run_migrations
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.image_repository import ImageRepository
+from app.database.repositories.mask_repository import MaskRepository
 from app.database.repositories.tool_repository import ToolRepository
 from app.modules.image_loader.image_loader import ImageLoader
 from app.modules.visualisation.overlay_renderer import OverlayRenderer
 from app.pipeline.analysis_pipeline import AnalysisPipeline
+from app.services.storage_registry import reconcile_storages
 from app.storage.image_storage import ImageStorage
 from fastapi import FastAPI, Request
 from fastapi.concurrency import run_in_threadpool
@@ -54,9 +56,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.tool_repository = ToolRepository(db)
         app.state.analysis_repository = AnalysisRepository(db)
         app.state.image_repository = ImageRepository(db)
+        app.state.mask_repository = MaskRepository(db)
         app.state.image_loader = ImageLoader()
         app.state.analysis_pipeline = AnalysisPipeline()
         app.state.overlay_renderer = OverlayRenderer()
+
+        # Подхватываем старые папки, на которые ещё ссылается история.
+        reconcile_storages(app.state.storage, app.state.image_repository)
 
         cleanup_task = asyncio.create_task(
             _cleanup_cache_periodically(app.state.storage)

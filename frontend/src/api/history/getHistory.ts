@@ -10,6 +10,7 @@ export interface HistoryItemResponse {
   width: number;
   height: number;
   status: "SUCCESS" | "FAILED";
+  error: string | null;
   previewUrl: string | null;
 }
 

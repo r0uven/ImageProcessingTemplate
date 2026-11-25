@@ -173,8 +173,30 @@ export interface AnalysisPipelineSettings {
   save_features: boolean;
 }
 
+export interface StorageEntry {
+  id: string;
+  path: string;
+  label: string;
+  created_at: string | null;
+  last_used_at: string | null;
+}
+
+export interface StorageStatus extends StorageEntry {
+  resolved_path: string;
+  exists: boolean;
+  is_active?: boolean;
+}
+
+export interface StorageInfo extends StorageStatus {
+  is_active: boolean;
+  image_count: number;
+  file_count: number;
+  size_bytes: number;
+}
+
 export interface StorageSettings {
-  images_directory: string;
+  active_storage_id: string;
+  storages: StorageEntry[];
   cache_max_age_days: number;
   cache_max_total_bytes: number;
   cleanup_interval_minutes: number;
@@ -230,6 +252,8 @@ export interface SettingsEnvelope {
   config_path: string;
   images_directory: string;
   resolved_images_directory: string;
+  active_storage_id: string;
+  storages: StorageStatus[];
   updated_at: string;
 }
 

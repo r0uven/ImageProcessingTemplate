@@ -137,6 +137,11 @@ def _persist_image(
                 file_path=str(file_path),
                 width=int(original_image.shape[1]),
                 height=int(original_image.shape[0]),
+                # TODO(images.scale_value): масштаб конкретного изображения
+                # пока не задаётся, поэтому всегда 1.0. Когда появится
+                # per-image масштаб, брать его из запроса загрузки/настроек
+                # и писать сюда (сейчас используется только глобальный
+                # feature_extraction.scale_mm_per_pixel).
                 scale_value=1.0,
                 content_hash=content_hash,
                 original_image_name=original_image_name,
@@ -301,7 +306,7 @@ class ImageUploadService:
         suffix: str,
     ) -> dict:
         """Возвращает уже загруженное изображение, восстанавливая оригинал при необходимости."""
-        _sync_existing_original(
+        existing_path = _sync_existing_original(
             existing,
             self.storage,
             self.image_repository,
@@ -309,7 +314,8 @@ class ImageUploadService:
         )
         _update_original_name(existing, original_image_name, self.image_repository)
 
-        self.storage.save_preview(existing.image_id, preview)
+        root = self.storage.storage_root_for_path(existing_path)
+        self.storage.save_preview(existing.image_id, preview, root)
         logger.info("Image already exists: image_id=%s", existing.image_id)
         return upload_response(existing.image_id, preview)
 
@@ -332,8 +338,10 @@ class ImageUploadService:
         )
         _update_original_name(existing, original_image_name, self.image_repository)
 
+        root = self.storage.storage_root_for_path(existing_path)
         preview = await run_in_threadpool(
-            self.storage.get_preview, self.storage.preview_path(existing.image_id)
+            self.storage.get_preview,
+            self.storage.preview_path(existing.image_id, root),
         )
         if preview is None:
             _, loaded_preview = await run_in_threadpool(
@@ -341,7 +349,7 @@ class ImageUploadService:
             )
             preview = loaded_preview
             await run_in_threadpool(
-                self.storage.save_preview, existing.image_id, preview
+                self.storage.save_preview, existing.image_id, preview, root
             )
 
         logger.info("Image already exists: image_id=%s", existing.image_id)

@@ -163,12 +163,23 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "save_features": True,
     },
     "storage": {
-        "images_directory": "data/images",
+        "active_storage_id": "default",
+        "storages": [
+            {
+                "id": "default",
+                "path": "data/images",
+                "label": "Основное хранилище",
+                "created_at": None,
+                "last_used_at": None,
+            }
+        ],
         "cache_max_age_days": 183,
         "cache_max_total_bytes": 10737418240,
         "cleanup_interval_minutes": 30,
         "cleanup_max_deletions_per_run": 25,
     },
+    # TODO(training): раздел пока не используется backend-кодом. Нет обучения,
+    # регистрации модели и записи результата в segmentation_models.
     "training": {
         "dataset_pair_format": "image_mask",
         "validate_image_mask_size": True,

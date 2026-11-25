@@ -19,7 +19,7 @@ type SettingsContextValue = {
   settings: AppSettings;
   meta: SettingsEnvelope;
   save: (next: AppSettings) => Promise<SettingsEnvelope>;
-  reload: () => Promise<void>;
+  reload: () => Promise<SettingsEnvelope | null>;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -29,13 +29,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<SettingsEnvelope | null> => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await getSettings();
       setMeta(response);
+      return response;
     } catch (cause) {
       console.error(cause);
       setError(
@@ -43,12 +44,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? cause.message
           : "Не удалось загрузить глобальные настройки",
       );
+      return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
     void load();
   }, [load]);
 
@@ -122,6 +125,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives next to its provider
 export function useAppSettings(): SettingsContextValue {
   const value = useContext(SettingsContext);
 

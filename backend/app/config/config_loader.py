@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,7 @@ RESULT_SETTINGS_SECTIONS = (
 )
 
 # Корень backend-приложения. Относительные пути из settings.json
-# (например, storage.images_directory) считаются от него.
+# (например, storage.storages[].path) считаются от него.
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 DEFAULT_IMAGES_DIRECTORY = "data/images"
@@ -39,12 +39,103 @@ def resolve_backend_path(value: str | Path) -> Path:
 
 
 def resolve_images_directory(value: str | Path | None = None) -> Path:
-    """Возвращает абсолютную директорию для всех изображений приложения."""
+    """Возвращает абсолютную директорию конкретного хранилища.
+
+    Без аргумента берётся активное хранилище из реестра ``storage.storages``.
+    """
     if value is None:
-        value = APP_SETTINGS.get("storage", {}).get(
-            "images_directory", DEFAULT_IMAGES_DIRECTORY
-        )
+        storage = APP_SETTINGS.get("storage", {})
+        active_id = storage.get("active_storage_id")
+        entries = storage.get("storages", [])
+
+        for entry in entries:
+            if isinstance(entry, dict) and entry.get("id") == active_id:
+                value = entry.get("path")
+                break
+
+        if value is None and entries:
+            first = entries[0]
+            value = first.get("path") if isinstance(first, dict) else None
+
+        if value is None:
+            value = DEFAULT_IMAGES_DIRECTORY
+
     return resolve_backend_path(value)
+
+
+def _storage_timestamp() -> str:
+    """Текущее время в формате, который используется в реестре хранилищ."""
+    return datetime.now(tz=UTC).isoformat(timespec="seconds")
+
+
+def _migrate_storage_settings(
+    settings: dict[str, Any],
+    *,
+    legacy_path: str | None = None,
+    had_storages: bool = False,
+) -> bool:
+    """Приводит старую настройку ``storage.images_directory`` к реестру.
+
+    Возвращает ``True``, если файл настроек нужно перезаписать.
+    """
+    storage = settings.get("storage")
+    if not isinstance(storage, dict):
+        return False
+
+    changed = False
+    stored_legacy = storage.pop("images_directory", None)
+    if stored_legacy is not None:
+        changed = True
+
+    if legacy_path is None:
+        legacy_path = stored_legacy
+
+    storages = storage.get("storages")
+
+    if not had_storages and legacy_path:
+        # В старом формате был только один путь. Список, пришедший из
+        # дефолтов при слиянии, не должен затирать пользовательское значение.
+        storages = []
+
+    normalized: list[dict[str, Any]] = []
+
+    if isinstance(storages, list):
+        for index, entry in enumerate(storages):
+            if not isinstance(entry, dict):
+                continue
+
+            item = dict(entry)
+            item.setdefault("id", f"storage-{index + 1}")
+            item.setdefault("path", DEFAULT_IMAGES_DIRECTORY)
+            item.setdefault("label", "")
+            item.setdefault("created_at", None)
+            item.setdefault("last_used_at", None)
+            normalized.append(item)
+
+    if not normalized:
+        now = _storage_timestamp()
+        normalized = [
+            {
+                "id": "default",
+                "path": legacy_path or DEFAULT_IMAGES_DIRECTORY,
+                "label": "Основное хранилище",
+                "created_at": now,
+                "last_used_at": now,
+            }
+        ]
+        changed = True
+
+    if normalized != storages:
+        storage["storages"] = normalized
+        changed = True
+
+    ids = {str(entry["id"]) for entry in normalized}
+    active_id = storage.get("active_storage_id")
+    if not active_id or active_id not in ids:
+        storage["active_storage_id"] = normalized[0]["id"]
+        changed = True
+
+    return changed
 
 
 def _merge_settings(
@@ -143,7 +234,25 @@ def load_settings(path: str | Path = CONFIG_PATH) -> dict[str, Any]:
         _backup_broken_file(target)
         return _restore_defaults(target)
 
-    return _merge_settings(default_settings(), loaded)
+    settings = _merge_settings(default_settings(), loaded)
+
+    loaded_storage = loaded.get("storage")
+    legacy_storage = loaded_storage if isinstance(loaded_storage, dict) else {}
+    migration_changed = _migrate_storage_settings(
+        settings,
+        legacy_path=legacy_storage.get("images_directory"),
+        had_storages="storages" in legacy_storage,
+    )
+
+    if migration_changed:
+        try:
+            write_settings_file(settings, target)
+        except OSError:
+            logger.exception(
+                "Не удалось сохранить обновлённый формат настроек в %s", target
+            )
+
+    return settings
 
 
 def ensure_settings_file(path: str | Path = CONFIG_PATH) -> dict[str, Any]:

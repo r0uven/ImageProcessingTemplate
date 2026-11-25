@@ -4,6 +4,7 @@ from app.api.constants import AnalysisImageType
 from app.api.dependencies import (
     AnalysisRepositoryDep,
     ImageRepositoryDep,
+    MaskRepositoryDep,
     OverlayDep,
     PipelineDep,
     StorageDep,
@@ -25,6 +26,7 @@ def analyze_image(
     overlay_renderer: OverlayDep,
     image_repository: ImageRepositoryDep,
     analysis_repository: AnalysisRepositoryDep,
+    mask_repository: MaskRepositoryDep,
 ) -> dict:
     """Запускает анализ изображения и сохраняет результат и промежуточные картинки."""
     service = AnalysisService(
@@ -33,6 +35,7 @@ def analyze_image(
         overlay_renderer=overlay_renderer,
         image_repository=image_repository,
         analysis_repository=analysis_repository,
+        mask_repository=mask_repository,
     )
     return service.analyze(image_id, parameters)
 
