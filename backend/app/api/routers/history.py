@@ -10,9 +10,14 @@ router = APIRouter(prefix="/history")
 def get_history(
     analysis_repository: AnalysisRepositoryDep,
     tool_repository: ToolRepositoryDep,
+    storage: StorageDep,
 ) -> list[dict]:
     """Список всех запусков анализа для таблицы истории."""
-    return history_service.list_history(analysis_repository, tool_repository)
+    return history_service.list_history(
+        analysis_repository,
+        tool_repository,
+        storage,
+    )
 
 
 @router.delete("/{run_id}", status_code=204)

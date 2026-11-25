@@ -24,6 +24,8 @@ class AnalysisRunModel:
     created_at: int
     analysis_result_id: str = ""
     settings_snapshot: str | None = None
+    duration: float = 0.0
+    status: str = "SUCCESS"
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,8 @@ class HistoryRunRecord:
     height: int
     pore_count: int
     original_image_name: str | None
+    duration: float = 0.0
+    status: str = "SUCCESS"
 
 
 @dataclass

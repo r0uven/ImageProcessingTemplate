@@ -77,9 +77,11 @@ class AnalysisRepository:
                         params_id,
                         analysis_result_id,
                         created_at,
-                        settings_snapshot
+                        settings_snapshot,
+                        duration,
+                        status
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         run.run_id,
@@ -89,6 +91,8 @@ class AnalysisRepository:
                         run.analysis_result_id,
                         run.created_at,
                         run.settings_snapshot,
+                        run.duration,
+                        run.status,
                     ),
                 )
         except sqlite3.IntegrityError:
@@ -182,7 +186,9 @@ class AnalysisRepository:
                 img.width,
                 img.height,
                 result.pore_count,
-                img.original_image_name
+                img.original_image_name,
+                run.duration,
+                run.status
             FROM analysis_runs run
             JOIN images img ON img.image_id = run.image_id
             JOIN analysis_results result
@@ -201,6 +207,8 @@ class AnalysisRepository:
                 height=row[6],
                 pore_count=row[7],
                 original_image_name=row[8],
+                duration=float(row[9] or 0.0),
+                status=row[10] or "SUCCESS",
             )
             for row in cursor.fetchall()
         ]

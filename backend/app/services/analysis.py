@@ -67,6 +67,7 @@ class AnalysisService:
                 available_images=saved_image_names,
             )
 
+        started_at = time.perf_counter()
         image = self.storage.get_original(record.file_path)
         if image is None:
             raise HTTPException(status_code=404, detail="Image file not found")
@@ -121,6 +122,7 @@ class AnalysisService:
             analysis_images["overlay"] = require_pil(overlay, "overlay")
 
         if not self.analysis_repository.run_exists(run_id):
+            duration = time.perf_counter() - started_at
             analysis_result_id = str(uuid.uuid4())
             analysis.analysis_result_id = analysis_result_id
 
@@ -133,6 +135,8 @@ class AnalysisService:
                     analysis_result_id=analysis_result_id,
                     created_at=int(time.time()),
                     settings_snapshot=settings_snapshot,
+                    duration=round(duration, 6),
+                    status="SUCCESS",
                 ),
                 parameters=parameters,
                 result=analysis,

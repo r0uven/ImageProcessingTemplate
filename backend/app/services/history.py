@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.config.config_loader import APP_SETTINGS
+from app.database.models import HistoryRunRecord
 from app.database.repositories.analysis_repository import AnalysisRepository
 from app.database.repositories.tool_repository import ToolRepository
 from app.storage.image_storage import ImageStorage
@@ -24,9 +25,29 @@ def _preview_image_type() -> str | None:
     return None
 
 
+def _run_status(run: HistoryRunRecord, storage: ImageStorage) -> str:
+    """Уточняет сохранённый статус запуска по наличию оригинального файла.
+
+    В историю попадают только успешно завершённые запуски, поэтому в БД
+    обычно записан SUCCESS. Если оригинал изображения удалён или находится
+    вне зарегистрированных хранилищ, запуск помечается как FAILED, чтобы
+    битая карточка истории не выглядела успешной.
+    """
+    if run.status != "SUCCESS":
+        return run.status
+
+    try:
+        original = storage.resolve_path(run.file_path)
+    except ValueError:
+        return "FAILED"
+
+    return "SUCCESS" if original.is_file() else "FAILED"
+
+
 def list_history(
     analysis_repository: AnalysisRepository,
     tool_repository: ToolRepository,
+    storage: ImageStorage,
 ) -> list[dict]:
     """Список всех запусков анализа для таблицы истории."""
     model_names = {
@@ -46,10 +67,10 @@ def list_history(
                     run.created_at,
                     tz=UTC,
                 ).strftime("%d.%m.%Y %H:%M"),
-                "duration": 0.0,  # пока не сохраняется в БД
+                "duration": round(run.duration, 3),
                 "width": run.width,
                 "height": run.height,
-                "status": "SUCCESS",  # пока не сохраняется в БД
+                "status": _run_status(run, storage),
                 "previewUrl": (
                     f"/analysis/{run.run_id}/images/{preview_type}"
                     if preview_type is not None
