@@ -8,6 +8,7 @@ type PoreSummaryProps = {
   units: MetricUnits;
 };
 
+/** Сводные показатели пор (количество, площадь, пористость, радиусы). */
 export function PoreSummary({ summary, units }: PoreSummaryProps) {
   const summaryItems = [
     {

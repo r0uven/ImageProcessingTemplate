@@ -1,3 +1,5 @@
+"""Репозиторий изображений: CRUD-операции над таблицей ``images``."""
+
 import sqlite3
 
 from app.database.models import ImageModel
@@ -14,10 +16,13 @@ _COLUMNS = """
 
 
 class ImageRepository:
+    """Читает и изменяет метаданные загруженных изображений."""
+
     def __init__(self, connection: sqlite3.Connection):
         self.connection = connection
 
     def create(self, image: ImageModel) -> None:
+        """Добавляет новое изображение в базу."""
         self.connection.execute(
             """
             INSERT INTO images (
@@ -44,6 +49,7 @@ class ImageRepository:
         self.connection.commit()
 
     def get_by_id(self, image_id: str) -> ImageModel | None:
+        """Ищет изображение по id."""
         cursor = self.connection.execute(
             f"SELECT {_COLUMNS} FROM images WHERE image_id = ?",
             (image_id,),
@@ -52,6 +58,7 @@ class ImageRepository:
         return None if row is None else self._row_to_model(row)
 
     def get_by_hash(self, content_hash: str) -> ImageModel | None:
+        """Ищет изображение по хэшу содержимого (защита от повторной загрузки)."""
         cursor = self.connection.execute(
             f"SELECT {_COLUMNS} FROM images WHERE content_hash = ?",
             (content_hash,),
@@ -60,12 +67,14 @@ class ImageRepository:
         return None if row is None else self._row_to_model(row)
 
     def get_all(self) -> list[ImageModel]:
+        """Возвращает все изображения, упорядоченные по id."""
         cursor = self.connection.execute(
             f"SELECT {_COLUMNS} FROM images ORDER BY image_id"
         )
         return [self._row_to_model(row) for row in cursor.fetchall()]
 
     def update_file_path(self, image_id: str, file_path: str) -> None:
+        """Обновляет путь к файлу (например, после переноса хранилища)."""
         self.connection.execute(
             "UPDATE images SET file_path = ? WHERE image_id = ?",
             (file_path, image_id),
@@ -73,6 +82,7 @@ class ImageRepository:
         self.connection.commit()
 
     def update_original_image_name(self, image_id: str, name: str) -> None:
+        """Запоминает исходное имя загруженного файла."""
         self.connection.execute(
             "UPDATE images SET original_image_name = ? WHERE image_id = ?",
             (name, image_id),
@@ -89,6 +99,7 @@ class ImageRepository:
 
     @staticmethod
     def _row_to_model(row: tuple) -> ImageModel:
+        """Преобразует строку SQL-запроса в ``ImageModel``."""
         return ImageModel(
             image_id=row[0],
             file_path=row[1],

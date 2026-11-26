@@ -21,6 +21,7 @@ type UseStorageManagerOptions = {
 };
 
 export function useStorageManager({ onChanged }: UseStorageManagerOptions) {
+  // Состояние реестра хранилищ, форм добавления/редактирования и диалога удаления.
   const [infos, setInfos] = useState<StorageInfo[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export function useStorageManager({ onChanged }: UseStorageManagerOptions) {
   useEffect(() => {
     if (!deleteTarget) return;
 
+    // Escape закрывает диалог удаления, но не во время выполнения запроса.
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) {
         setDeleteTarget(null);
@@ -73,6 +75,7 @@ export function useStorageManager({ onChanged }: UseStorageManagerOptions) {
     action: () => Promise<StorageInfo[]>,
     successMessage: string,
   ): Promise<boolean> {
+    // Единая обёртка для всех мутаций: busy-состояние, ошибки и уведомление.
     setBusy(key);
     setError(null);
     setNotice(null);
@@ -92,6 +95,7 @@ export function useStorageManager({ onChanged }: UseStorageManagerOptions) {
   }
 
   async function pickFolder(target: "new" | "edit") {
+    // Нативный выбор папки доступен только в Tauri; в браузере путь вводят вручную.
     if (!isTauri()) {
       setError(
         "Выбор папки доступен в настольном приложении. Введите путь вручную.",

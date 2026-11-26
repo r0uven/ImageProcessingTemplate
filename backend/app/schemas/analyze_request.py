@@ -1,9 +1,17 @@
+"""Pydantic-схемы запроса на анализ изображения.
+
+Поля намеренно названы в camelCase: так их ожидает frontend. Внутри
+приложения они преобразуются в snake_case-сущности маппером.
+"""
+
 from typing import Any
 
 from pydantic import BaseModel
 
 
 class PreprocessingRequest(BaseModel):
+    """Настройки предобработки изображения."""
+
     denoise: bool
     normalize: bool
     contrastEnhancement: bool
@@ -13,6 +21,8 @@ class PreprocessingRequest(BaseModel):
 
 
 class QualityMetricsRequest(BaseModel):
+    """Выбор метрик качества разделения пор."""
+
     coveredArea: bool
     lostArea: bool
     extraArea: bool
@@ -21,6 +31,8 @@ class QualityMetricsRequest(BaseModel):
 
 
 class PoreSeparationRequest(BaseModel):
+    """Параметры разделения слипшихся пор."""
+
     enabled: bool
     applyOnlyToCandidates: bool
     preserveAutonomousPores: bool
@@ -33,17 +45,23 @@ class PoreSeparationRequest(BaseModel):
 
 
 class OutputMaskParametersRequest(BaseModel):
+    """Значения пикселей и размер выходной маски."""
+
     foregroundValue: int
     backgroundValue: int
     preserveSize: bool
 
 
 class ThresholdSegmentationRequest(BaseModel):
+    """Параметры пороговой сегментации."""
+
     thresholdValue: int
     invert: bool
 
 
 class NeuralSegmentationRequest(BaseModel):
+    """Параметры нейросетевой сегментации."""
+
     modelType: str | None
     entities: dict[str, Any]
     defaultConfidenceThreshold: float
@@ -51,6 +69,8 @@ class NeuralSegmentationRequest(BaseModel):
 
 
 class SegmentationRequest(BaseModel):
+    """Параметры сегментации: выбранный метод и настройки обоих методов."""
+
     method: str
     outputMask: OutputMaskParametersRequest
     threshold: ThresholdSegmentationRequest
@@ -58,6 +78,8 @@ class SegmentationRequest(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
+    """Тело запроса ``POST /analysis/{image_id}``."""
+
     parametersId: str
     modelId: str
     preprocessing: PreprocessingRequest

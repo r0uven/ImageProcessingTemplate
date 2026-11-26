@@ -20,6 +20,7 @@ type PoreMetricsCardProps = {
 
 const DECIMALS_STORAGE_KEY = "pore-table-decimals";
 
+/** Карточка базовых характеристик пор: сводка, сортируемая таблица и CSV. */
 export function PoreMetricsCard({
   runId,
   summary,
@@ -44,6 +45,7 @@ export function PoreMetricsCard({
   );
 
   const toggleSort = (key: SortKey) => {
+    // Повторный клик по тому же столбцу меняет направление сортировки.
     setSort((previous) =>
       previous.key === key
         ? {

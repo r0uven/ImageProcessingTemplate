@@ -5,14 +5,17 @@ export type Json = null | boolean | number | string | Json[] | JsonObject;
 
 export type JsonObject = { [key: string]: Json };
 
+/** Проверяет, что значение — именно объект (а не массив и не null). */
 export function isObject(value: Json): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Глубокая копия JSON-значения через сериализацию. */
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/** Строка, по которой значение настройки участвует в поиске. */
 export function searchableValue(value: Json): string {
   if (value === null) return "null не задано";
 
@@ -33,6 +36,7 @@ export function searchableValue(value: Json): string {
   return String(value);
 }
 
+/** Все слова поискового запроса должны встречаться в строке настройки. */
 export function matchesSearch(
   fieldKey: string,
   path: string,
@@ -48,6 +52,7 @@ export function matchesSearch(
   return tokens.every((token) => haystack.includes(token));
 }
 
+/** Рекурсивно проверяет, есть ли совпадение поиска во вложенных полях объекта. */
 export function objectHasSearchMatch(
   value: JsonObject,
   path: string,
@@ -97,6 +102,7 @@ export const SECTION_ORDER = [
 const STORAGE_REGISTRY_FIELDS = new Set(["storages", "active_storage_id"]);
 
 export function withoutStorageRegistry(value: JsonObject): JsonObject {
+  // Убираем поля реестра, чтобы общий редактор не затёр их устаревшей копией.
   return Object.fromEntries(
     Object.entries(value).filter(([key]) => !STORAGE_REGISTRY_FIELDS.has(key)),
   );
@@ -106,6 +112,7 @@ export function withLatestStorageRegistry(
   draft: Json,
   envelope: SettingsEnvelope,
 ): Json {
+  // Перед сохранением подставляем самый свежий реестр хранилищ с backend.
   if (!isObject(draft) || !isObject(draft.storage)) return draft;
 
   return {

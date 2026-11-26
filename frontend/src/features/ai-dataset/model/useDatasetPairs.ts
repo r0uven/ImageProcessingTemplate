@@ -7,18 +7,23 @@ import { validateMask } from "../lib/validateMask";
 
 export interface DatasetPair {
   id: string;
+  /** Исходное изображение и object URL для его превью. */
   original?: File;
   originalUrl?: string;
+  /** Эталонная маска и object URL для её превью. */
   mask?: File;
   maskUrl?: string;
 }
 
+/** Проверяет расширение файла по списку разрешённых форматов. */
 function hasAllowedExtension(filename: string, formats: string[]): boolean {
   const lower = filename.toLowerCase();
   return formats.some((format) => lower.endsWith(format.toLowerCase()));
 }
 
 export function useDatasetPairs(trainingSettings: TrainingSettings) {
+  // Хук ведёт список пар «изображение + маска» и сам добавляет пустую пару,
+  // когда предыдущая заполнена.
   const imageFormats = trainingSettings.allowed_image_formats;
   const maskFormats = trainingSettings.allowed_mask_formats;
 
@@ -107,6 +112,7 @@ export function useDatasetPairs(trainingSettings: TrainingSettings) {
 
     const target = datasetPairs.find((pair) => pair.id === pairId);
 
+    // Размеры проверяются только если это включено в настройках обучения.
     const isValid = await validateMask(
       file,
       trainingSettings.validate_image_mask_size ? target?.original : undefined,
@@ -138,6 +144,7 @@ export function useDatasetPairs(trainingSettings: TrainingSettings) {
 
       const last = updated[updated.length - 1];
 
+      // Как только последняя пара заполнена, добавляем следующую пустую.
       if (last.original && last.mask) {
         updated.push({
           id: crypto.randomUUID(),

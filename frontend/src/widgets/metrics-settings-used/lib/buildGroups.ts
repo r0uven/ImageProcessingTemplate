@@ -5,6 +5,7 @@ import { enabledLabels, getPath, isSection, rows } from "./format";
 import type { CardGroup } from "./types";
 
 export function buildGroups(data: SettingsUsed): CardGroup[] {
+  // request — параметры конкретного запуска, global — общие настройки на его момент.
   const request = data.request ?? {};
   const global = data.global ?? {};
   const groups: CardGroup[] = [];
@@ -113,6 +114,7 @@ export function buildGroups(data: SettingsUsed): CardGroup[] {
       ],
     ]);
 
+    // Вложенные наборы флагов показываем одной строкой со списком включённых.
     for (const key of [
       "region_object_features",
       "circle_object_features",

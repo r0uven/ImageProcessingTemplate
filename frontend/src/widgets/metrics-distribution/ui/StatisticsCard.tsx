@@ -14,6 +14,7 @@ type StatisticsCardProps = {
   unit: string;
 };
 
+/** Карточка со статистикой по выбранному распределению. */
 export function StatisticsCard({
   meta,
   statistics,

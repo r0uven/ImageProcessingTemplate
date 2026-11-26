@@ -12,6 +12,10 @@ type UseWorkspaceUploadOptions = {
   onUploaded: (result: UploadResponse) => void;
 };
 
+/**
+ * Загрузка изображения в воркспейс: нативный диалог в Tauri,
+ * обычный input с файлом в браузере.
+ */
 export function useWorkspaceUpload({
   allowedFormats,
   onUploaded,
@@ -19,6 +23,7 @@ export function useWorkspaceUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const accept = formatToAccept(allowedFormats);
 
+  /** Открывает выбор файла и загружает выбранное изображение. */
   async function handleUpload() {
     // В браузере нативный диалог Tauri недоступен — оставляем обычный выбор файла.
     if (!isTauri()) {
@@ -61,6 +66,7 @@ export function useWorkspaceUpload({
       console.error("Ошибка загрузки изображения:", error);
       alert("Не удалось загрузить изображение. Проверьте консоль.");
     } finally {
+      // Сбрасываем input, чтобы можно было выбрать тот же файл повторно.
       event.target.value = "";
     }
   }

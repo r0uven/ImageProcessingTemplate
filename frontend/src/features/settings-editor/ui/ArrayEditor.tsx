@@ -11,10 +11,12 @@ type ArrayEditorProps = {
   path: string;
 };
 
+/** Определяет тип элементов массива для выбора подходящего редактора. */
 function arrayKind(
   value: Json[],
   fieldKey: string,
 ): "string" | "number" | "nested" {
+  // Для пустого массива тип угадываем по имени поля.
   if (value.length === 0) {
     if (
       fieldKey === "default_size" ||
@@ -34,6 +36,7 @@ function arrayKind(
   return "string";
 }
 
+/** Редактор массива: строки, числа или вложенные пары чисел (например, размеры). */
 export function ArrayEditor({
   fieldKey,
   value,

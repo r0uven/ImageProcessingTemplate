@@ -78,6 +78,7 @@ export function groupDistribution(
     .map(([x, y]) => ({ x, y }));
 }
 
+/** Форматирует число для отображения; нечисловые значения — прочерк. */
 export function formatNumber(
   value: number,
   maximumFractionDigits = 3,
@@ -89,6 +90,7 @@ export function formatNumber(
   });
 }
 
+/** Подпись точности округления для пояснения к графику. */
 export function getRoundingLabel(decimals: number): string {
   return decimals === 0
     ? "до целых"

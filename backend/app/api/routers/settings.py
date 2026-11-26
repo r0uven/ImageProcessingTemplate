@@ -1,3 +1,5 @@
+"""Эндпоинты чтения и изменения настроек и реестра хранилищ."""
+
 import logging
 
 from fastapi import APIRouter, HTTPException, Request

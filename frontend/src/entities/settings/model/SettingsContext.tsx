@@ -26,11 +26,17 @@ type SettingsContextValue = {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
+/**
+ * Загружает глобальные настройки при старте приложения и держит их в контексте.
+ * Пока настройки не получены, вместо дочерних страниц показывается заглушка
+ * с кнопкой повторной загрузки.
+ */
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [meta, setMeta] = useState<SettingsEnvelope | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /** Загружает настройки с backend и сохраняет их в состоянии. */
   const load = useCallback(async (): Promise<SettingsEnvelope | null> => {
     setLoading(true);
     setError(null);
@@ -58,12 +64,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const save = useCallback(async (next: AppSettings) => {
+    // Backend возвращает актуальный envelope — им же обновляем контекст.
     const response = await saveSettings(next);
     setMeta(response);
     return response;
   }, []);
 
   const value = useMemo<SettingsContextValue | null>(() => {
+    // null означает «настройки ещё не загружены» — провайдер покажет заглушку.
     if (!meta) return null;
 
     return {
@@ -119,6 +127,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Доступ к настройкам; вне ``SettingsProvider`` бросает ошибку. */
 // eslint-disable-next-line react-refresh/only-export-components -- hook lives next to its provider
 export function useAppSettings(): SettingsContextValue {
   const value = useContext(SettingsContext);

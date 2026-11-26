@@ -28,6 +28,7 @@ export function readStoredDecimals(
   return fallback;
 }
 
+/** Сохраняет выбранное количество знаков после запятой. */
 export function storeDecimals(storageKey: string, value: number): void {
   try {
     window.localStorage.setItem(storageKey, String(value));

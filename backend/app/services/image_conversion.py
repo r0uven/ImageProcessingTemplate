@@ -1,3 +1,5 @@
+"""Приведение изображений между форматами OpenCV, PIL и HTTP-ответом."""
+
 from io import BytesIO
 
 import cv2
@@ -28,6 +30,7 @@ def to_pil(image: np.ndarray | Image.Image) -> Image.Image:
 
 
 def require_pil(image: np.ndarray | Image.Image | None, name: str) -> Image.Image:
+    """Возвращает PIL-изображение или падает, если результат шага отсутствует."""
     if image is None:
         raise ValueError(f"Изображение '{name}' отсутствует в результате анализа")
     return to_pil(image)
@@ -59,6 +62,7 @@ def pretty_mask(
 
 
 def png_response(image: Image.Image) -> Response:
+    """Сериализует PIL-изображение в HTTP-ответ с PNG."""
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return Response(content=buffer.getvalue(), media_type="image/png")

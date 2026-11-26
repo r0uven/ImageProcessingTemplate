@@ -17,6 +17,7 @@ export type {
 const STORAGE_PREFIX = "workspace-state-v1:";
 const DEFAULT_KEY = "default";
 
+/** Переносит настройки из глобального конфига в редактируемое состояние воркспейса. */
 function createDefaultSettings(settings: AppSettings): ProcessingSettingsState {
   return {
     preprocessing: {
@@ -99,11 +100,14 @@ export function createRunFingerprint(
 const stateCache = new Map<string, WorkspaceState>();
 const listeners = new Map<string, Set<() => void>>();
 
+/** Состояние каждого инструмента (toolId) хранится под отдельным ключом. */
 function storageKey(key: string): string {
   return `${STORAGE_PREFIX}${key}`;
 }
 
 function readFromStorage(key: string, settings: AppSettings): WorkspaceState | null {
+  // Восстанавливаем состояние поверх актуальных значений по умолчанию:
+  // так новые поля из настроек не остаются undefined после обновления.
   try {
     const raw = sessionStorage.getItem(storageKey(key));
     if (!raw) return null;
@@ -178,6 +182,7 @@ export function updateWorkspaceState(
   settings: AppSettings,
   updater: (previous: WorkspaceState) => WorkspaceState,
 ): void {
+  // Обновляем кэш, sessionStorage и подписчиков одним атомарным шагом.
   const next = updater(getWorkspaceState(key, settings));
 
   stateCache.set(key, next);
@@ -186,6 +191,7 @@ export function updateWorkspaceState(
 }
 
 function storedKeys(): string[] {
+  // Ключи в sessionStorage не перечислить напрямую — проходим по индексам.
   const keys: string[] = [];
 
   try {

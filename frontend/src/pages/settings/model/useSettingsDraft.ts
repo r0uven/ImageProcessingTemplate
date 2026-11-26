@@ -13,6 +13,7 @@ import {
 } from "@/features/settings-editor";
 import { formatError } from "@/shared/lib/formatError";
 
+/** Черновик настроек: правки копятся локально до нажатия «Сохранить». */
 export function useSettingsDraft() {
   const { settings, meta, save, reload } = useAppSettings();
 
@@ -24,6 +25,7 @@ export function useSettingsDraft() {
   const [error, setError] = useState<string | null>(null);
 
   const dirty = useMemo(
+    // Сравниваем сериализованные значения: так учитываются вложенные поля.
     () => JSON.stringify(draft) !== JSON.stringify(settings),
     [draft, settings],
   );
@@ -40,6 +42,7 @@ export function useSettingsDraft() {
     setError(null);
 
     try {
+      // Реестр хранилищ сохраняется отдельно, поэтому подставляем его свежую версию.
       const payload = withLatestStorageRegistry(draft, meta);
       const response = await save(payload as unknown as AppSettings);
       setDraft(clone(response.settings) as unknown as Json);
@@ -63,6 +66,7 @@ export function useSettingsDraft() {
   };
 
   const reset = useCallback(() => {
+    // Возвращаем черновик к последней сохранённой версии с backend.
     setDraft(clone(settings) as unknown as Json);
     setMessage(null);
     setError(null);

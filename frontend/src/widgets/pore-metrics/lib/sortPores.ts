@@ -15,6 +15,7 @@ export const SORT_LABELS: Record<SortKey, string> = {
   centerY: "координате Y",
 };
 
+/** Сортирует поры по выбранному столбцу; пустые значения уходят в конец. */
 export function sortPores(
   pores: PoreTableRow[],
   sort: SortState,

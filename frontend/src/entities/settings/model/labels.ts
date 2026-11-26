@@ -200,6 +200,7 @@ export const SELECT_OPTIONS: Record<string, string[]> = {
   connectivity: ["4", "8"],
 };
 
+/** Человекочитаемое название поля; неизвестные ключи выводятся как есть. */
 export function labelFor(key: string): string {
   return FIELD_LABELS[key] ?? key;
 }

@@ -42,10 +42,12 @@ const statusVariant = {
   FAILED: "danger",
 } as const;
 
+/** Страница прогресса обучения. Пока работает на имитации, без backend. */
 export const TrainingProcessPage = () => {
   const navigate = useNavigate();
   const { settings } = useAppSettings();
 
+  // Количество эпох берётся из настроек; 100 — запасное значение для старых конфигов.
   const totalEpochs = settings.training.training_params.epochs ?? 100;
 
   const { id } = useParams();
@@ -95,6 +97,7 @@ export const TrainingProcessPage = () => {
   const status: TrainingStatus =
     epoch >= totalEpochs ? "COMPLETED" : "TRAINING";
 
+  // Процент выполнения для полосы прогресса.
   const progress = (epoch / totalEpochs) * 100;
 
   return (

@@ -28,6 +28,7 @@ import {
 } from "./WorkspacePage.styles";
 import { FeaturesHint } from "./WorkspaceActions.styles";
 
+/** Страница обработки изображения выбранной моделью. */
 export function WorkspacePage() {
   const navigate = useNavigate();
   const { toolId } = useParams<{ toolId: string }>();
@@ -47,6 +48,7 @@ export function WorkspacePage() {
       previous: WorkspaceState["processingSettings"],
     ) => WorkspaceState["processingSettings"],
   ) {
+    // Настройки хранятся в общем сторе, поэтому обновляем их через update.
     update((prev) => ({
       ...prev,
       processingSettings: updater(prev.processingSettings),
@@ -108,6 +110,7 @@ export function WorkspacePage() {
   }
 
   const currentFingerprint = useMemo(
+    // Отпечаток позволяет понять, соответствует ли сохранённый runId текущим данным.
     () =>
       createRunFingerprint(
         viewerState.original?.image_id ?? null,
@@ -175,6 +178,7 @@ export function WorkspacePage() {
   };
 
   const hasImage = Boolean(viewerState.original || viewerState.processed);
+  // Для каждого режима показываем своё изображение, подставляя оригинал как fallback.
   const currentImage = {
     original: viewerState.original,
     annotated: viewerState.annotated ?? viewerState.original,

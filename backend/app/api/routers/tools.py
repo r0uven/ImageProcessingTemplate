@@ -1,3 +1,5 @@
+"""Эндпоинты справочника моделей сегментации (инструментов)."""
+
 import logging
 from typing import Annotated
 
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/tools")
 
 @router.get("")
 def get_tools(tool_repository: ToolRepositoryDep):
+    """Возвращает все доступные модели: встроенные и добавленные пользователем."""
     return tool_repository.get_all()
 
 
@@ -25,6 +28,7 @@ def delete_tool(
     ] = None,
 ) -> None:
     """Удаляет модель только при явном подтверждении и если она removable."""
+    # Заголовок должен дословно совпадать с id: это защита от случайного удаления.
     if confirmation != model_id:
         raise HTTPException(
             status_code=428,

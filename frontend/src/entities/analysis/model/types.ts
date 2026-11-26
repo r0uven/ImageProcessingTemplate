@@ -4,10 +4,12 @@ export interface ImageResponse {
   height: number;
 }
 
+/** Ответ загрузки: к изображению добавляется ссылка на превью. */
 export interface UploadResponse extends ImageResponse {
   preview_url: string;
 }
 
+/** Результат анализа: id запуска, найденные объекты и ссылки на артефакты. */
 export interface AnalysisResponse extends ImageResponse {
   status: string;
   run_id: string;
@@ -157,7 +159,9 @@ export interface ProcessingMetrics {
   summary: PoreSummary;
   pores: PoreTableRow[];
   units: MetricUnits;
+  /** Гистограммы по каждому типу распределения. */
   distributions: Record<DistributionType, DistributionPoint[]>;
+  /** Статистика (min/max/mean и т.д.) по каждому распределению. */
   statistics: Record<DistributionType, DistributionStatistics>;
 }
 

@@ -21,6 +21,7 @@ type DistributionCardProps = {
   onDecimalsChange: (value: number) => void;
 };
 
+/** Карточка распределения: переключатель характеристики и гистограмма. */
 export function DistributionCard({
   availableDistributions,
   activeDistribution,

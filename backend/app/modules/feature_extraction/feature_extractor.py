@@ -1,9 +1,14 @@
+"""Извлечение числовых характеристик из обнаруженных объектов."""
+
 from app.config.config_loader import APP_SETTINGS
 from app.pipeline.pipeline_context import PipelineContext
 
 
 class FeatureExtractor:
+    """Считает площади, диаметры, пористость и таблицу пор."""
+
     def extract(self, context: PipelineContext) -> PipelineContext:
+        """Дополняет ``context.analysis_result`` метриками по найденным порам."""
         settings = APP_SETTINGS["feature_extraction"]
 
         objects = context.objects

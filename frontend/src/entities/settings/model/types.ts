@@ -1,3 +1,7 @@
+/**
+ * Типы настроек приложения. Совпадают со схемой `settings.json` на backend,
+ * поэтому имена полей используют snake_case.
+ */
 export interface ImageSettings {
   allowed_formats: string[];
   allowed_sizes: [number, number][];
@@ -171,6 +175,7 @@ export interface AnalysisPipelineSettings {
   save_features: boolean;
 }
 
+/** Запись реестра хранилищ: путь и служебные даты. */
 export interface StorageEntry {
   id: string;
   path: string;
@@ -185,6 +190,7 @@ export interface StorageStatus extends StorageEntry {
   is_active?: boolean;
 }
 
+/** Хранилище вместе с вычисленной статистикой (для страницы настроек). */
 export interface StorageInfo extends StorageStatus {
   is_active: boolean;
   image_count: number;
@@ -245,6 +251,7 @@ export interface AppSettings {
   training: TrainingSettings;
 }
 
+/** Настройки плюс метаданные файла конфигурации и хранилища. */
 export interface SettingsEnvelope {
   settings: AppSettings;
   config_path: string;

@@ -1,3 +1,4 @@
+/** Описание модели сегментации из справочника моделей. */
 export type SegmentationModel = {
   model_id: string;
   model_name: string;

@@ -1,3 +1,5 @@
+"""Эндпоинты загрузки изображений: байтами и по локальному пути."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, UploadFile

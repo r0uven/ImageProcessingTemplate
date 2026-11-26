@@ -37,6 +37,7 @@ function Toggle({ label, checked, onChange }: ToggleProps) {
   );
 }
 
+/** Панель настроек обработки: предобработка, сегментация и разделение пор. */
 export function ProcessingSettings({
   preprocessing,
   segmentation,

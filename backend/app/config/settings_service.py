@@ -132,8 +132,7 @@ def _validate_storage_settings(storage: dict[str, Any]) -> None:
         for second in resolved_paths[index + 1 :]:
             if first in second.parents or second in first.parents:
                 raise SettingsValidationError(
-                    "Хранилища не должны быть вложены друг в друга: "
-                    f"{first} и {second}"
+                    f"Хранилища не должны быть вложены друг в друга: {first} и {second}"
                 )
 
     active_path = resolved_paths[ids.index(active_id)]
@@ -162,9 +161,7 @@ def update_settings(payload: dict[str, Any] | AppSettings) -> dict[str, Any]:
     validated = validate_settings(payload)
 
     with _LOCK:
-        old_active_id = (
-            APP_SETTINGS.get("storage", {}).get("active_storage_id")
-        )
+        old_active_id = APP_SETTINGS.get("storage", {}).get("active_storage_id")
         new_active_id = validated["storage"]["active_storage_id"]
         if old_active_id != new_active_id:
             for entry in validated["storage"]["storages"]:

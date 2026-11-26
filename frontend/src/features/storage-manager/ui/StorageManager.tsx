@@ -12,6 +12,7 @@ type StorageManagerProps = {
   onChanged: () => Promise<void>;
 };
 
+/** Блок управления реестром хранилищ на странице настроек. */
 export function StorageManager({ onChanged }: StorageManagerProps) {
   const manager = useStorageManager({ onChanged });
 

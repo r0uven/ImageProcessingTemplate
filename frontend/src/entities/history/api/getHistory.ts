@@ -14,6 +14,7 @@ export interface HistoryItemResponse {
   previewUrl: string | null;
 }
 
+/** Загружает список завершённых запусков анализа. */
 export async function getHistory(): Promise<HistoryItemResponse[]> {
   const { data } = await client.get<HistoryItemResponse[]>("/history");
   return data;

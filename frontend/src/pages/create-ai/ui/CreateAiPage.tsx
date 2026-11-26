@@ -18,10 +18,12 @@ import {
   StatValue,
 } from "./CreateAiSidebar.styles";
 
+/** Страница создания и обучения новой модели (пока без реального backend). */
 export const CreateAiPage = () => {
   const navigate = useNavigate();
   const { settings } = useAppSettings();
 
+  // Значения по умолчанию берутся из настроек training.
   const trainingSettings = settings.training;
   const trainingParams = trainingSettings.training_params;
 
@@ -48,6 +50,7 @@ export const CreateAiPage = () => {
       return;
     }
 
+    // TODO: заменить temp-id на id, который вернёт backend после создания модели.
     navigate("/neural-networks/temp-id/training");
   };
 

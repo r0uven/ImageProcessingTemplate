@@ -14,6 +14,7 @@ const IMAGE_LABELS: Record<AnalysisImageType, string> = {
   overlay: "Оверлей",
 };
 
+// Порядок, в котором выбирается изображение по умолчанию: самое информативное.
 const PREFERRED_ORDER: AnalysisImageType[] = [
   "overlay",
   "postprocessed",
@@ -29,6 +30,7 @@ export function AnalysisImagesCard({ images = [] }: AnalysisImagesCardProps) {
   const [selected, setSelected] = useState<AnalysisImageType | null>(null);
   const isDesktopApp = isTauri();
 
+  // Выбранное пользователем изображение, иначе первое из предпочтительного списка.
   const active =
     images.find((image) => image.type === selected) ??
     PREFERRED_ORDER.map((type) =>

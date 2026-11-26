@@ -1,3 +1,5 @@
+"""Файловое хранилище изображений, превью и результатов анализа."""
+
 import hashlib
 import logging
 import os
@@ -47,7 +49,6 @@ def _allowed_suffixes() -> set[str]:
         if str(item).strip()
     }
     return suffixes or _FALLBACK_SUFFIXES
-
 
 
 class ImageStorage:
@@ -108,11 +109,12 @@ class ImageStorage:
         settings = settings or APP_SETTINGS
         storage_settings = settings.get("storage", {})
 
+        registry: dict[str, Path]
         if base_dir is not None:
             registry = {"default": Path(base_dir).resolve()}
             active_id = "default"
         else:
-            registry: dict[str, Path] = {}
+            registry = {}
             for entry in storage_settings.get("storages", []):
                 if not isinstance(entry, dict):
                     continue
@@ -131,9 +133,7 @@ class ImageStorage:
                         path_value,
                     )
 
-            active_id = str(
-                storage_settings.get("active_storage_id") or ""
-            ).strip()
+            active_id = str(storage_settings.get("active_storage_id") or "").strip()
 
             if active_id not in registry:
                 active_id = next(iter(registry), "")
@@ -192,9 +192,7 @@ class ImageStorage:
             except OSError:
                 # Недоступный диск не должен мешать приложению запуститься:
                 # история и файлы из других хранилищ останутся читаемыми.
-                logger.exception(
-                    "Failed to prepare storage directory: %s", directory
-                )
+                logger.exception("Failed to prepare storage directory: %s", directory)
 
         self.cache_max_age_seconds = (
             int(storage_settings.get("cache_max_age_days", DEFAULT_CACHE_MAX_AGE_DAYS))
@@ -219,7 +217,6 @@ class ImageStorage:
                 "cleanup_max_deletions_per_run", DEFAULT_CLEANUP_MAX_DELETIONS
             )
         )
-
 
     # ------------------------------------------------------------------
     # Утилиты
@@ -596,9 +593,7 @@ class ImageStorage:
             try:
                 run_dir.rmdir()
             except OSError:
-                logger.warning(
-                    "Failed to remove analysis run directory: %s", run_dir
-                )
+                logger.warning("Failed to remove analysis run directory: %s", run_dir)
 
         return removed
 

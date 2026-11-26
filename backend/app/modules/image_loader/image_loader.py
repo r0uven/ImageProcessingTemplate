@@ -1,3 +1,5 @@
+"""Загрузка изображений из байтов или с диска с применением настроек."""
+
 from pathlib import Path
 
 import cv2
@@ -10,9 +12,12 @@ from app.utils.pretty_image import make_pretty_image_plot
 
 
 class ImageLoader:
+    """Декодирует изображение и готовит его превью для интерфейса."""
+
     def load_image(
         self, file_bytes: bytes, filename: str
     ) -> tuple[np.ndarray, Image.Image]:
+        """Загружает изображение из переданных байтов."""
         self._validate_suffix(filename)
 
         image_array = np.frombuffer(file_bytes, np.uint8)
@@ -35,12 +40,14 @@ class ImageLoader:
 
     @staticmethod
     def _validate_suffix(filename: str | Path) -> None:
+        """Проверяет расширение файла по списку разрешённых форматов."""
         file_extension = Path(filename).suffix.lower().lstrip(".")
         if file_extension not in APP_SETTINGS["image"]["allowed_formats"]:
             raise ValueError(f"Unsupported file format: {file_extension}")
 
     @staticmethod
     def _decode(image_array: np.ndarray) -> tuple[np.ndarray, Image.Image]:
+        """Декодирует байты в BGR-массив и строит PNG-превью."""
         original_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
         if original_image is None:

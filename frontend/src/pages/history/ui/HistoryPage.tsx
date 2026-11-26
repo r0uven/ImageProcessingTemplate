@@ -25,6 +25,7 @@ import * as S from "./HistoryPage.styles";
 type HistoryFilter = "ALL" | "SUCCESS" | "FAILED";
 type HistorySort = "date-desc" | "date-asc" | "name" | "duration";
 
+/** Разбирает дату, пришедшую с backend в формате `dd.MM.yyyy HH:mm`. */
 function parseHistoryDate(date: string) {
   return parse(date, "dd.MM.yyyy HH:mm", new Date());
 }
@@ -46,6 +47,7 @@ export const HistoryPage = () => {
     useState<HistoryItemResponse | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Фильтрация по названию/статусу и сортировка выбранным способом.
   const filteredHistory = (history ?? [])
     .filter((item) => {
       const matchesSearch = item.filename
@@ -81,6 +83,7 @@ export const HistoryPage = () => {
   async function handleDelete() {
     if (!pendingDelete) return;
 
+    // Запоминаем id до закрытия диалога: после удаления pendingDelete сбросится.
     const runId = pendingDelete.run_id;
 
     try {

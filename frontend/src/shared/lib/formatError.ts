@@ -1,5 +1,9 @@
 import axios from "axios";
 
+/**
+ * Приводит ошибку к понятному тексту. Для ошибок FastAPI разбирает `detail`:
+ * строку или список ошибок валидации с путями к полям.
+ */
 export function formatError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const detail = (error.response?.data as { detail?: unknown } | undefined)

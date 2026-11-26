@@ -1,3 +1,4 @@
+// Дизайн-токены приложения: цвета, отступы, типографика, тени и т.д.
 export const colors = {
   background: "#0b0f14",
   backgroundElevated: "#11161d",

@@ -1,6 +1,8 @@
+"""Постобработка маски: удаление шума, заполнение дыр, морфология."""
+
 import cv2
 import numpy as np
-from scipy import ndimage
+from scipy import ndimage  # type: ignore[import-untyped]  # у scipy нет встроенных стабов
 from skimage.morphology import remove_small_objects
 
 from app.config.config_loader import APP_SETTINGS
@@ -17,7 +19,10 @@ _MORPHOLOGY_OPERATIONS = {
 
 
 class Postprocessor:
+    """Очищает бинарную маску сегментации согласно настройкам ``postprocessing``."""
+
     def postprocess(self, mask: np.ndarray) -> np.ndarray:
+        """Возвращает очищенную булеву маску."""
         settings = APP_SETTINGS["postprocessing"]
         original_shape = mask.shape
 

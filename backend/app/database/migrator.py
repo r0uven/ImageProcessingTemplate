@@ -1,3 +1,5 @@
+"""Применение SQL-миграций из папки ``migrations`` при старте приложения."""
+
 import logging
 import sqlite3
 from pathlib import Path
@@ -7,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_migrations(connection: sqlite3.Connection) -> None:
-
+    """Выполняет миграции, которые ещё не отмечены в таблице ``migrations``."""
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS migrations (
@@ -21,6 +23,7 @@ def run_migrations(connection: sqlite3.Connection) -> None:
     files = sorted(MIGRATIONS_DIR.glob("*.sql"))
 
     for file in files:
+        # Имя файла вида ``001_init.sql``: версия — числовой префикс.
         version = int(file.stem.split("_")[0])
 
         if version in applied:

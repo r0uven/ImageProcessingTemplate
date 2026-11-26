@@ -50,6 +50,7 @@ export const DistributionChart = ({
   unit,
   decimals,
 }: Props) => {
+  /** Форматирует числа для осей и подсказки с учётом выбранной точности. */
   const formatValue = (value: unknown) => {
     const numeric = typeof value === "number" ? value : Number(value);
 
@@ -70,6 +71,8 @@ export const DistributionChart = ({
   const allUnique =
     data.length > 1 && data.every((point) => point.y === 1);
 
+  // Если у каждого значения частота 1, график выглядит «рваным» — подсказываем
+  // уменьшить точность, чтобы близкие значения объединились в столбцы.
   return (
     <Wrapper>
       <ResponsiveContainer width="100%" height={420}>

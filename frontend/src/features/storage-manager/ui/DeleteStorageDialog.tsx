@@ -22,6 +22,7 @@ type DeleteStorageDialogProps = {
   onConfirm: () => void;
 };
 
+/** Диалог удаления хранилища с опциями удаления файлов и истории. */
 export function DeleteStorageDialog({
   target,
   busy,

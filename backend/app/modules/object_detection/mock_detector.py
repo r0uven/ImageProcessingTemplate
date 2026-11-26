@@ -1,3 +1,5 @@
+"""Детектор объектов на основе связных компонент (заглушка вместо нейросети)."""
+
 import numpy as np
 from skimage.measure import label, regionprops
 
@@ -7,7 +9,10 @@ from app.modules.object_detection.detector_interface import DetectorInterface
 
 
 class MockDetector(DetectorInterface):
+    """Находит поры как связные области маски и считает их характеристики."""
+
     def detect(self, mask: np.ndarray) -> list[PoreObject]:
+        """Размечает маску и возвращает список объектов с метриками."""
         settings = APP_SETTINGS["object_detection"]
 
         min_object_area = int(settings["min_object_area"])
@@ -17,10 +22,12 @@ class MockDetector(DetectorInterface):
         return_object_mask = bool(settings["return_object_mask"])
 
         if mask.ndim == 3:
+            # Для 3D-маски берём один канал: маска всегда бинарная.
             if mask.shape[-1] == 1:
                 mask = mask[..., 0]
             else:
                 mask = mask[:, :, 0]
+        # Поры в маске — False (чёрные), поэтому инвертируем перед разметкой.
         detection_mask = np.logical_not(mask)
 
         # В settings.json связность задаётся в конвенции OpenCV (4/8),
@@ -33,6 +40,7 @@ class MockDetector(DetectorInterface):
         detected_objects = []
 
         for index, region in enumerate(regions):
+            # Слишком мелкие области считаем шумом.
             if region.area < min_object_area:
                 continue
 

@@ -1,3 +1,5 @@
+"""Последовательный запуск всех шагов обработки изображения."""
+
 import logging
 
 from app.modules.feature_extraction.feature_extractor import FeatureExtractor
@@ -11,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisPipeline:
+    """Собирает модули обработки и прогоняет через них ``PipelineContext``."""
+
     def __init__(self):
         self.detector = MockDetector()
         self.preprocessor = Preprocessor()
@@ -19,7 +23,7 @@ class AnalysisPipeline:
         self.feature_extractor = FeatureExtractor()
 
     def run(self, context: PipelineContext) -> PipelineContext:
-
+        """Выполняет предобработку, сегментацию, постобработку, детекцию и признаки."""
         logger.info("Pipeline started")
 
         original_image = context.image_data.original_image

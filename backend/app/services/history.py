@@ -1,3 +1,5 @@
+"""Сервис истории: формирование списка запусков и удаление записей."""
+
 import logging
 from datetime import UTC, datetime
 from pathlib import Path

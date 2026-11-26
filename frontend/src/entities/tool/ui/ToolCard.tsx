@@ -18,6 +18,7 @@ interface Props {
   isPlus?: boolean;
 }
 
+/** Карточка модели на главной; `isPlus` включает плитку «добавить модель». */
 export function ToolCard({ tool, onClick, onDelete, isPlus }: Props) {
   return (
     <Card

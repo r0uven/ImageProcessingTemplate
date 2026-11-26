@@ -9,9 +9,11 @@ type OptionalFieldProps = {
   onChange: (next: Json) => void;
 };
 
+/** Поле для необязательных значений: пустая строка сохраняется как null. */
 export function OptionalField({ kind, value, onChange }: OptionalFieldProps) {
   const [text, setText] = useState(value === null ? "" : String(value));
 
+  /** Применяет введённый текст при потере фокуса или Enter. */
   const commit = () => {
     const trimmed = text.trim();
 
