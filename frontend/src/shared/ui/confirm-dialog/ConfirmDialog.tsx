@@ -30,6 +30,7 @@ type ConfirmDialogProps = {
   onCancel: () => void;
 };
 
+/** Модальное окно подтверждения действия. */
 export function ConfirmDialog({
   open,
   title,
@@ -44,6 +45,7 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!open) return;
 
+    // Escape закрывает диалог, если он не занят выполнением действия.
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !loading) {
         onCancel();

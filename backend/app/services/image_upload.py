@@ -1,3 +1,5 @@
+"""Сервис загрузки изображений: байтами или копированием с диска."""
+
 import logging
 import uuid
 from collections.abc import Callable
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def remove_files(*paths: Path) -> None:
+    """Удаляет временные файлы, не прерывая загрузку из-за ошибок ОС."""
     for path in paths:
         try:
             path.unlink(missing_ok=True)
@@ -156,6 +159,8 @@ def _persist_image(
 
 
 class ImageUploadService:
+    """Принимает файл, проверяет его и сохраняет оригинал с превью."""
+
     def __init__(
         self,
         storage: ImageStorage,

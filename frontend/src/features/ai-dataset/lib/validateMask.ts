@@ -1,3 +1,4 @@
+/** Загружает файл в HTMLImageElement через временный object URL. */
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

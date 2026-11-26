@@ -294,9 +294,7 @@ class StorageSettings(_StrictModel):
         if len(ids) != len(set(ids)):
             raise ValueError("Идентификаторы хранилищ должны быть уникальны")
         if self.active_storage_id not in ids:
-            raise ValueError(
-                "active_storage_id должен указывать на одно из хранилищ"
-            )
+            raise ValueError("active_storage_id должен указывать на одно из хранилищ")
         return self
 
 

@@ -6,6 +6,7 @@ type SettingsMetaCardProps = {
   meta: SettingsEnvelope;
 };
 
+/** Служебная информация: путь к конфигу, папка изображений и хранилища. */
 export function SettingsMetaCard({ meta }: SettingsMetaCardProps) {
   const activeStorage = meta.storages.find((entry) => entry.is_active);
 

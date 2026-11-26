@@ -7,6 +7,10 @@ interface Props {
   images: TrainingState[];
 }
 
+/**
+ * Сравнение эталонной маски и предсказания с перетаскиваемой границей.
+ * Слева показывается эталон, справа — предсказание модели.
+ */
 export const ImageComparison = ({ images }: Props) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -39,6 +43,7 @@ export const ImageComparison = ({ images }: Props) => {
       return;
     }
 
+    // Переводим координату курсора в проценты ширины контейнера.
     const rect = containerRef.current.getBoundingClientRect();
 
     const percent = ((clientX - rect.left) / rect.width) * 100;
@@ -99,6 +104,7 @@ export const ImageComparison = ({ images }: Props) => {
 
               <S.Overlay
                 style={{
+                  // Обрезаем слой предсказания слева до позиции ползунка.
                   clipPath: `inset(0 0 0 ${position}%)`,
                 }}
               >

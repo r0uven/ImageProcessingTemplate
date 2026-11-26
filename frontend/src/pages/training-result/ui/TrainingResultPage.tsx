@@ -21,7 +21,7 @@ import { ImageComparison } from "./ImageComparison/ImageComparison";
 import * as S from "./TrainingResultPage.styled";
 
 // TODO заменить ответом backend
-
+// Тестовые изображения и метрики для демонстрации страницы результата.
 const TEST_IMAGES: TrainingState[] = [
   {
     id: 1,

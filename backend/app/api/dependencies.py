@@ -1,3 +1,9 @@
+"""FastAPI-зависимости, достающие общие объекты из ``app.state``.
+
+Все сервисы и репозитории создаются один раз в ``lifespan`` приложения,
+а роутеры получают их через ``Depends`` и аннотированные алиасы ниже.
+"""
+
 from typing import Annotated
 
 from fastapi import Depends, Request

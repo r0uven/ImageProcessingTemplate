@@ -9,6 +9,7 @@ import {
   typography,
 } from "./tokens";
 
+// Переиспользуемые CSS-фрагменты для styled-components.
 export const pageBackground = css`
   min-height: 100vh;
   background: ${gradients.page};

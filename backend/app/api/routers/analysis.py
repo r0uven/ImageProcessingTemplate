@@ -1,3 +1,5 @@
+"""Эндпоинты анализа изображений, метрик и экспорта результатов."""
+
 from fastapi import APIRouter, HTTPException, Response
 
 from app.api.constants import AnalysisImageType
@@ -46,6 +48,7 @@ def get_analysis_image(
     image_type: AnalysisImageType,
     storage: StorageDep,
 ):
+    """Отдаёт одну из промежуточных картинок запуска (маску, оверлей и т.п.)."""
     try:
         path = storage.find_analysis_image_path(run_id, image_type)
     except ValueError as exc:
@@ -92,7 +95,9 @@ def export_analysis_csv(
         content=csv_text,
         media_type="text/csv; charset=utf-8",
         headers={
+            # Имя файла задаёт backend, чтобы frontend мог сохранить его как есть.
             "Content-Disposition": f'attachment; filename="pores_{run_id}.csv"',
+            # Без этого заголовка браузер не даст прочитать имя файла из JS.
             "Access-Control-Expose-Headers": "Content-Disposition",
         },
     )

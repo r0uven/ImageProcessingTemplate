@@ -1,3 +1,5 @@
+"""Эндпоинты истории запусков анализа."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.api.dependencies import AnalysisRepositoryDep, StorageDep, ToolRepositoryDep

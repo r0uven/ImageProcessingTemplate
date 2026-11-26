@@ -1,3 +1,5 @@
+"""Предобработка изображения: нормализация, шумоподавление, контраст, сглаживание."""
+
 import cv2
 import numpy as np
 
@@ -9,17 +11,21 @@ from app.entities.processing_parameters import (
 
 
 class Preprocessor:
+    """Применяет к изображению набор включённых в настройках операций."""
+
     def preprocess(
         self,
         image: np.ndarray,
         parameters: PreprocessingParameters | None = None,
     ) -> np.ndarray:
+        """Возвращает предобработанное изображение в формате uint8."""
         settings = parameters or default_preprocessing_parameters()
         original_shape = image.shape
 
         processed_image = image.copy()
 
         if settings.normalize:
+            # Min-max растягивает яркость на заданный в настройках диапазон.
             low, high = APP_SETTINGS["image"]["pixel_value_range"]
             processed_image_copy = np.zeros_like(processed_image, dtype=np.uint8)
             cv2.normalize(
@@ -61,6 +67,7 @@ class Preprocessor:
     @staticmethod
     def _enhance_contrast(image: np.ndarray) -> np.ndarray:
         """Повышает контраст через CLAHE по каналу яркости LAB."""
+        # Для одноканальных изображений CLAHE не нужен — хватает эквализации.
         if image.ndim != 3:
             return cv2.equalizeHist(image.astype(np.uint8))
 

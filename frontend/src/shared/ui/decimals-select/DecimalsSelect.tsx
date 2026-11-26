@@ -9,6 +9,7 @@ type DecimalsSelectProps = {
   label?: string;
 };
 
+/** Выбор количества знаков после запятой для таблиц и графиков. */
 export function DecimalsSelect({
   id,
   value,

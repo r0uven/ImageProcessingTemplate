@@ -26,6 +26,7 @@ type ObjectFieldsProps = {
   tokens: string[];
 };
 
+/** Рекурсивно рисует поля JSON-объекта настроек. */
 export function ObjectFields({
   value,
   onChange,
@@ -68,10 +69,12 @@ function FieldEditor({
   tokens,
 }: FieldEditorProps) {
   const label = labelFor(fieldKey);
+  // Сложные структуры редактируются как сырой JSON, а не набором полей.
   const isRawJson =
     isObject(value) &&
     (fieldKey === "entities" || fieldKey === "algorithm_params");
   const valueText = isRawJson ? JSON.stringify(value) : searchableValue(value);
+  // Совпадение самого поля с поиском или совпадение во вложенных полях.
   const selfMatches = matchesSearch(
     fieldKey,
     path,
@@ -89,7 +92,6 @@ function FieldEditor({
   }
 
   const childTokens = selfMatches ? [] : tokens;
-
   const nullableKind = NULLABLE_NUMBERS.has(fieldKey)
     ? "number"
     : NULLABLE_STRINGS.has(fieldKey)

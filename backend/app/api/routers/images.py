@@ -1,3 +1,5 @@
+"""Эндпоинты получения информации об изображениях и их превью."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.api.dependencies import ImageRepositoryDep, StorageDep
@@ -9,11 +11,13 @@ router = APIRouter(prefix="/images")
 
 @router.get("")
 def list_images(image_repository: ImageRepositoryDep):
+    """Список всех загруженных изображений из базы."""
     return image_repository.get_all()
 
 
 @router.get("/{image_id}")
 def get_image_info(image_id: str, image_repository: ImageRepositoryDep):
+    """Метаданные одного изображения."""
     record = image_repository.get_by_id(image_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -32,6 +36,8 @@ def get_preview(
         raise HTTPException(status_code=404, detail="Image not found")
 
     root = storage.storage_root_for_path(record.file_path)
+    # Превью ищем рядом с файлом в том хранилище, где он лежит; для старых
+    # записей без явного корня — общим поиском по всем хранилищам.
     preview_path = (
         storage.preview_path(image_id, root)
         if root is not None
@@ -40,6 +46,7 @@ def get_preview(
     preview = storage.get_preview(preview_path) if preview_path else None
 
     if preview is None:
+        # Превью генерируется лениво и кэшируется на диске.
         try:
             original = storage.get_original(record.file_path)
         except ValueError as exc:

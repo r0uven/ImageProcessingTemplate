@@ -13,6 +13,7 @@ type PoreTableProps = {
   onToggleSort: (key: SortKey) => void;
 };
 
+/** Таблица пор с сортировкой по столбцам и настройкой точности. */
 export function PoreTable({
   pores,
   units,

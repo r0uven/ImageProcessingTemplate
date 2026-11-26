@@ -1,7 +1,10 @@
+"""Хелперы формирования JSON-ответов API."""
+
 from PIL import Image
 
 
 def upload_response(image_id: str, preview: Image.Image) -> dict:
+    """Ответ на загрузку: id, ссылка на превью и размеры изображения."""
     return {
         "image_id": image_id,
         "preview_url": f"/images/{image_id}/preview",
@@ -26,6 +29,7 @@ def analysis_response(
     images_url = f"/analysis/{run_id}/images"
 
     def image_url(name: str) -> str | None:
+        # Ссылка не отдаётся, если соответствующее изображение не сохранялось.
         if available_images is not None and name not in available_images:
             return None
         return f"{images_url}/{name}"

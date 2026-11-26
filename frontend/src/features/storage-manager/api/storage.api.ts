@@ -1,6 +1,7 @@
 import { client } from "@/shared/api/client";
 import type { StorageInfo } from "@/entities/settings";
 
+/** CRUD-запросы к реестру хранилищ; все мутации возвращают новый список. */
 export type StorageCreatePayload = {
   path: string;
   label?: string;

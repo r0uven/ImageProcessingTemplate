@@ -1,5 +1,8 @@
+"""Общие константы API, разделяемые роутерами и сервисами."""
+
 from typing import Literal
 
+# Типы промежуточных изображений, которые можно запросить у запуска анализа.
 AnalysisImageType = Literal["preprocessed", "segmentation", "postprocessed", "overlay"]
 
 ANALYSIS_IMAGE_NAMES: tuple[AnalysisImageType, ...] = (

@@ -20,6 +20,7 @@ import {
   HeaderActions,
 } from "./LandingPage.styles";
 
+/** Главный экран: список моделей и переход к созданию новой. */
 export function LandingPage() {
   const navigate = useNavigate();
 

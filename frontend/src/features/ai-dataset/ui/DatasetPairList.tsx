@@ -14,6 +14,7 @@ type DatasetPairListProps = {
   onMaskChange: (pairId: string, event: ChangeEvent<HTMLInputElement>) => void;
 };
 
+/** Список пар «изображение + маска» с превью и загрузкой файлов. */
 export function DatasetPairList({
   pairs,
   imageFormats,

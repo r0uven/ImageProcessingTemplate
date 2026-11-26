@@ -22,6 +22,7 @@ type StorageCardProps = {
   onDelete: () => void;
 };
 
+/** Карточка хранилища: статистика, активация, редактирование и удаление. */
 export function StorageCard({
   info,
   editing,

@@ -23,6 +23,7 @@ type SaveFilePicker = (options: {
 }) => Promise<SaveFileHandle>;
 
 function filenameFromDisposition(disposition: unknown, fallback: string): string {
+  // Заголовок Content-Disposition приходит в виде `attachment; filename="..."`.
   if (typeof disposition !== "string") return fallback;
 
   const match = /filename="?([^";]+)"?/i.exec(disposition);
@@ -30,6 +31,7 @@ function filenameFromDisposition(disposition: unknown, fallback: string): string
 }
 
 function isCanceled(error: unknown): boolean {
+  // Отмена системного диалога выбрасывает DOMException с именем AbortError.
   return (
     typeof error === "object" &&
     error !== null &&
@@ -39,6 +41,7 @@ function isCanceled(error: unknown): boolean {
 }
 
 function downloadInBrowser(csv: string, filename: string): void {
+  // Классическое скачивание через временную ссылку: работает во всех браузерах.
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -91,6 +94,7 @@ export async function savePoresCsv(runId: string): Promise<SaveCsvResult> {
     return "saved";
   }
 
+  // File System Access API есть не во всех браузерах, поэтому проверяем наличие.
   const picker = (window as unknown as { showSaveFilePicker?: SaveFilePicker })
     .showSaveFilePicker;
 

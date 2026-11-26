@@ -12,6 +12,7 @@ type SettingsToolbarProps = {
   onCollapseAll: () => void;
 };
 
+/** Панель поиска и массового раскрытия разделов настроек. */
 export function SettingsToolbar({
   toolbarRef,
   query,

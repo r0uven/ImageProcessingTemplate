@@ -1,5 +1,6 @@
 import type { StorageInfo } from "@/entities/settings";
 
+/** Название хранилища: пользовательское, иначе последняя папка пути. */
 export function displayName(info: StorageInfo): string {
   if (info.label.trim()) return info.label.trim();
 
@@ -10,6 +11,7 @@ export function displayName(info: StorageInfo): string {
   return name || info.id;
 }
 
+/** Человекочитаемый размер в Б/КБ/МБ/ГБ/ТБ. */
 export function formatBytes(bytes: number): string {
   if (!bytes) return "0 Б";
 
@@ -23,6 +25,7 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
+/** Дата в локальном формате; пустое или битое значение выводится как есть. */
 export function formatDate(value: string | null): string {
   if (!value) return "—";
 

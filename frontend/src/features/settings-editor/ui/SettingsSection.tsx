@@ -13,6 +13,7 @@ type SettingsSectionProps = {
   children: ReactNode;
 };
 
+/** Сворачиваемый раздел настроек с заголовком и счётчиком параметров. */
 export function SettingsSection({
   sectionKey,
   title,

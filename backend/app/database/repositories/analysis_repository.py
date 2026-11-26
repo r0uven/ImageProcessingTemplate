@@ -1,3 +1,5 @@
+"""Репозиторий запусков анализа, их результатов и истории."""
+
 import json
 import sqlite3
 from dataclasses import asdict
@@ -13,6 +15,8 @@ from app.schemas.analyze_request import AnalyzeRequest
 
 
 class AnalysisRepository:
+    """Сохраняет и читает запуски анализа, маски и агрегированные метрики."""
+
     def __init__(self, db: sqlite3.Connection):
         self.db = db
 

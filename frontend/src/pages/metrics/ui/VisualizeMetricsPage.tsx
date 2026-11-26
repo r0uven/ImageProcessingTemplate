@@ -71,6 +71,7 @@ export const ProcessingMetricsPage = () => {
   // Возврат к настройкам предыдущей обработки: страница обработки сохраняет
   // своё состояние, поэтому изображение и параметры останутся на месте.
   // TODO(training): если переход идет через страницу истории, то нужно дать возможность применить и поменять локальные настройки для выбранной обработки
+  // Если страница открыта по прямой ссылке, истории браузера для возврата нет.
   const goBackToWorkspace = () => {
     const historyIndex = (window.history.state as { idx?: number } | null)?.idx;
 
@@ -83,6 +84,7 @@ export const ProcessingMetricsPage = () => {
   };
 
   const startNewProcessing = () => {
+    // Сбрасываем сохранённые состояния воркспейсов, чтобы начать с чистого листа.
     clearAllWorkspaceStates();
     navigate("/");
   };
@@ -113,10 +115,12 @@ export const ProcessingMetricsPage = () => {
     );
   }
 
+  // Доступные распределения зависят от запуска: часть метрик могла не считаться.
   const availableDistributions = DISTRIBUTION_ORDER.filter(
     (type) => (metrics.distributions[type] ?? []).length > 0,
   );
 
+  // Если выбранное распределение пропало, показываем первое доступное.
   const activeDistribution = availableDistributions.includes(
     selectedDistribution,
   )

@@ -1,7 +1,10 @@
+"""Рендер изображений в единый аккуратный вид для превью и масок."""
+
 import io
 
 import matplotlib
 
+# Agg нужен для работы без графического дисплея (сервер, фоновый поток).
 matplotlib.use("Agg")
 import numpy as np
 from matplotlib import pyplot as plt
@@ -23,6 +26,7 @@ def make_pretty_image_plot(
     """
     figsize = (float(figsize[0]), float(figsize[1]))
 
+    # Оси растянуты на всю фигуру и скрыты, чтобы не было рамок и отступов.
     fig = plt.figure(figsize=figsize, dpi=int(dpi))
     ax = Axes(fig, (0, 0, 1, 1))
     ax.set_axis_off()

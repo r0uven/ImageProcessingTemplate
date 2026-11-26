@@ -6,6 +6,8 @@ from typing import Literal
 
 @dataclass
 class ImageModel:
+    """Запись об изображении в таблице ``images``."""
+
     image_id: str
     file_path: str
     width: int
@@ -17,6 +19,8 @@ class ImageModel:
 
 @dataclass
 class AnalysisRunModel:
+    """Запись о запуске анализа в таблице ``analysis_runs``."""
+
     run_id: str
     image_id: str
     model_id: str
@@ -31,6 +35,8 @@ class AnalysisRunModel:
 
 @dataclass(frozen=True)
 class AnalysisResultRecord:
+    """Результат запуска, собранный из ``analysis_runs`` и ``analysis_results``."""
+
     run_id: str
     image_id: str
     model_id: str
@@ -55,6 +61,8 @@ class AnalysisResultRecord:
 
 @dataclass(frozen=True)
 class HistoryRunRecord:
+    """Строка таблицы истории: запуск вместе с именем и размерами изображения."""
+
     run_id: str
     image_id: str
     model_id: str
@@ -81,6 +89,8 @@ class MaskModel:
 
 @dataclass
 class SegmentationModel:
+    """Модель сегментации из справочника ``tools``."""
+
     model_id: str
     model_name: str
     model_type: Literal[

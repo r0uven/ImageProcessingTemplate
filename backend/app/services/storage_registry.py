@@ -189,8 +189,7 @@ def _assert_unique_root(
 
         if root in other.parents or other in root.parents:
             raise StorageConflictError(
-                "Хранилища не должны быть вложены друг в друга: "
-                f"{root} и {other}"
+                f"Хранилища не должны быть вложены друг в друга: {root} и {other}"
             )
 
 
@@ -321,8 +320,8 @@ def update_storage(
                 "Сначала переместите папку целиком, затем укажите новый путь."
             )
 
-        for image_id, target in updates:
-            image_repository.update_file_path(image_id, target)
+        for image_id, file_path in updates:
+            image_repository.update_file_path(image_id, file_path)
 
         entry["path"] = path.strip()
 
@@ -336,9 +335,9 @@ def _safe_to_remove(root: Path) -> bool:
         return False
     if resolved == Path.home().resolve():
         return False
-    if resolved == BASE_DIR.resolve() or BASE_DIR.resolve() in resolved.parents:
-        return False
-    return True
+    return not (
+        resolved == BASE_DIR.resolve() or BASE_DIR.resolve() in resolved.parents
+    )
 
 
 def delete_storage(
@@ -384,8 +383,7 @@ def delete_storage(
 
     if delete_files and not _safe_to_remove(root):
         raise StorageError(
-            f"Удаление папки {root} запрещено: это системная папка "
-            "или папка приложения"
+            f"Удаление папки {root} запрещено: это системная папка или папка приложения"
         )
 
     if delete_history:

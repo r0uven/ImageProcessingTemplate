@@ -4,10 +4,12 @@ import { formatNumber, formatValue, getPath, isSection } from "./format";
 import type { CardRow } from "./types";
 
 function joinParts(parts: Array<string | null>): string {
+  // Склеиваем только заданные части, пустые значения не выводим.
   const filtered = parts.filter((part): part is string => Boolean(part));
   return filtered.length ? filtered.join(" · ") : "—";
 }
 
+/** Короткая сводка параметров запуска для свёрнутой карточки. */
 export function buildSummary(data: SettingsUsed): CardRow[] {
   const request = data.request ?? {};
   const global = data.global ?? {};
@@ -15,6 +17,7 @@ export function buildSummary(data: SettingsUsed): CardRow[] {
 
   const image = global.image;
   const preprocessing = request.preprocessing;
+  // Собираем человекочитаемое описание подготовки изображения.
   const preparation: string[] = [];
 
   if (isSection(image)) {

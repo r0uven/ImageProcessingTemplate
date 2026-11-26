@@ -14,6 +14,7 @@ type AddStorageFormProps = {
   onAdd: () => void;
 };
 
+/** Форма регистрации нового хранилища. */
 export function AddStorageForm({
   newLabel,
   newPath,

@@ -21,12 +21,14 @@ const METHOD_LABELS: Record<string, string> = {
   neural: "нейросетевая",
 };
 
+/** Проверяет, что значение — вложенный раздел настроек (объект). */
 export function isSection(
   value: SettingsSnapshotValue | undefined,
 ): value is SettingsSnapshotSection {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Безопасно достаёт значение по пути ключей, не падая на пропущенных полях. */
 export function getPath(
   root: SettingsSnapshotSection | undefined,
   ...path: string[]
@@ -41,6 +43,7 @@ export function getPath(
   return current;
 }
 
+/** Форматирует число снимка настроек без лишних нулей. */
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return "—";
   if (Number.isInteger(value)) return String(value);
@@ -58,6 +61,7 @@ function formatPrimitive(value: SettingsSnapshotValue): string {
   return String(value);
 }
 
+/** Человекочитаемое значение настройки (вкл/выкл, подписи операций и т.д.). */
 export function formatValue(value: SettingsSnapshotValue | undefined): string {
   if (value === undefined) return "—";
   if (value === null) return "не задан";
@@ -69,6 +73,7 @@ export function formatValue(value: SettingsSnapshotValue | undefined): string {
   return OPERATION_LABELS[value] ?? METHOD_LABELS[value] ?? value;
 }
 
+/** Превращает пары «ключ — значение» в строки карточки, пропуская пустые. */
 export function rows(
   specs: Array<[string, SettingsSnapshotValue | undefined]>,
 ): CardRow[] {
@@ -82,6 +87,7 @@ export function rows(
     }));
 }
 
+/** Перечисляет включённые флаги раздела через запятую. */
 export function enabledLabels(
   value: SettingsSnapshotValue | undefined,
 ): string {

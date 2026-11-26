@@ -12,6 +12,7 @@ type HistoryCardProps = {
   onView: () => void;
 };
 
+/** Карточка записи истории обработки. */
 export function HistoryCard({ item, onDelete, onView }: HistoryCardProps) {
   const isSuccess = item.status === "SUCCESS";
 

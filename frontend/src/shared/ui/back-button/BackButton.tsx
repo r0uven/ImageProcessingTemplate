@@ -6,6 +6,7 @@ import {
   BackText,
 } from "./BackButton.styles.tsx";
 
+/** Кнопка «Назад», скрытая на главном экране. */
 export const BackButton = () => {
   const navigate = useNavigate();
 

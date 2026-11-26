@@ -1,8 +1,14 @@
+"""Точка входа FastAPI: lifespan, подключение БД и регистрация роутеров."""
+
 import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import analysis, history, images, settings, system, tools, uploads
 from app.database.connection import get_connection
@@ -16,9 +22,6 @@ from app.modules.visualisation.overlay_renderer import OverlayRenderer
 from app.pipeline.analysis_pipeline import AnalysisPipeline
 from app.services.storage_registry import reconcile_storages
 from app.storage.image_storage import ImageStorage
-from fastapi import FastAPI, Request
-from fastapi.concurrency import run_in_threadpool
-from fastapi.middleware.cors import CORSMiddleware
 
 LOG_PATH = Path(__file__).resolve().parent / "app.log"
 

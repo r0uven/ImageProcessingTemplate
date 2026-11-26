@@ -10,6 +10,7 @@ type SettingsUsedCardProps = {
   data: SettingsUsed | null;
 };
 
+/** Свёрнутая/развёрнутая карточка с параметрами, использованными в запуске. */
 export function SettingsUsedCard({ data }: SettingsUsedCardProps) {
   const [expanded, setExpanded] = useState(false);
 

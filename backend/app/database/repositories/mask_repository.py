@@ -10,6 +10,8 @@ from app.database.models import MaskModel
 
 
 class MaskRepository:
+    """Репозиторий метаданных масок (файлы хранятся отдельно)."""
+
     def __init__(self, connection: sqlite3.Connection):
         self.connection = connection
 
@@ -38,6 +40,7 @@ class MaskRepository:
         self.connection.commit()
 
     def get_by_run(self, run_id: str) -> list[MaskModel]:
+        """Возвращает все маски, сохранённые для запуска."""
         cursor = self.connection.execute(
             """
             SELECT mask_id, run_id, mask_type, file_path

@@ -21,6 +21,7 @@ type WorkspaceViewerProps = {
   onFileInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
+/** Просмотр изображения и переключение между оригиналом, результатом и оверлеем. */
 export function WorkspaceViewer({
   mode,
   hasImage,
@@ -69,6 +70,7 @@ export function WorkspaceViewer({
       </S.ViewerHeader>
 
       {!hasImage ? (
+        // Область загрузки кликабельна и доступна с клавиатуры.
         <S.UploadOverlay
           role="button"
           tabIndex={0}

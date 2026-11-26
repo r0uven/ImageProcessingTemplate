@@ -71,6 +71,7 @@ export const SettingsPage = () => {
   }, []);
 
   const sections = useMemo(() => {
+    // Сначала идут разделы в заданном порядке, затем любые новые ключи.
     if (!isObject(draft)) return [];
 
     const keys = Object.keys(draft);
@@ -84,6 +85,7 @@ export const SettingsPage = () => {
   const searching = searchTokens.length > 0;
 
   const visibleSections = useMemo(() => {
+    // При поиске оставляем только разделы, где есть совпадение.
     if (!isObject(draft) || !searchTokens.length) return sections;
 
     return sections.filter((section) => {
@@ -180,6 +182,8 @@ export const SettingsPage = () => {
             >
               {section === "storage" ? (
                 <>
+                  {/* Реестр хранилищ редактируется отдельным компонентом,
+                      остальные поля storage — обычным JSON-редактором. */}
                   <StorageManager onChanged={handleStorageChanged} />
 
                   <ObjectFields

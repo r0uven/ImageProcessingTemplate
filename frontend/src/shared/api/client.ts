@@ -1,7 +1,9 @@
 import axios from "axios";
 
+/** Базовый URL backend; переопределяется через VITE_API_URL. */
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001";
 
+// Общий axios-клиент с длинным таймаутом: анализ изображения может идти долго.
 export const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 600_000,

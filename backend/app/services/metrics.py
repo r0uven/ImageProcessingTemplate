@@ -1,3 +1,5 @@
+"""Расчёт метрик запуска: распределения, статистика, таблица пор и CSV."""
+
 import csv
 import io
 import json
@@ -12,6 +14,7 @@ from app.storage.image_storage import ImageStorage
 
 
 def parse_size_distribution(raw: str | None) -> dict[str, Any]:
+    """Разбирает JSON с распределением размеров; битые данные дают пустой словарь."""
     if raw is None:
         return {}
     try:
@@ -46,8 +49,10 @@ def _units(distribution: dict[str, Any]) -> dict[str, str]:
     coordinates = distribution.get("coordinates_unit")
 
     length_unit = length if isinstance(length, str) and length else "px"
-    area_unit = area if isinstance(area, str) and area else (
-        "мм²" if length_unit == "мм" else "px²"
+    area_unit = (
+        area
+        if isinstance(area, str) and area
+        else ("мм²" if length_unit == "мм" else "px²")
     )
     coordinates_unit = (
         coordinates if isinstance(coordinates, str) and coordinates else "px"
@@ -389,9 +394,7 @@ def build_pores_csv(
     writer.writerow(
         ["Суммарная площадь пор", _csv_number(summary["totalPoreArea"]), units["area"]]
     )
-    writer.writerow(
-        ["Пористость", _csv_number(summary["porosityPercent"]), "%"]
-    )
+    writer.writerow(["Пористость", _csv_number(summary["porosityPercent"]), "%"])
     writer.writerow(
         ["Средняя площадь поры", _csv_number(summary["meanPoreArea"]), units["area"]]
     )
@@ -420,8 +423,7 @@ def build_pores_csv(
     writer.writerow([])
 
     has_coordinates = any(
-        pore["centerX"] is not None or pore["centerY"] is not None
-        for pore in pores
+        pore["centerX"] is not None or pore["centerY"] is not None for pore in pores
     )
     header = [
         "№",

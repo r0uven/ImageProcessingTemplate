@@ -4,6 +4,7 @@ import time
 import uuid
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Literal
 
 from fastapi import HTTPException
 from PIL import Image
@@ -29,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisService:
+    """Оркестрирует анализ: кэш, пайплайн, сохранение файлов и записей БД."""
+
     def __init__(
         self,
         storage: ImageStorage,
@@ -228,10 +231,11 @@ class AnalysisService:
         (cleaned). Если соответствующее изображение не сохранялось, строки
         не создаются.
         """
-        for name, mask_type in (
+        masks: tuple[tuple[str, Literal["raw", "cleaned"]], ...] = (
             ("segmentation", "raw"),
             ("postprocessed", "cleaned"),
-        ):
+        )
+        for name, mask_type in masks:
             path = paths.get(name)
             if path is None or not path.is_file():
                 continue
@@ -281,9 +285,7 @@ class AnalysisService:
             )
         except Exception:
             # Ошибка записи не должна подменять исходное исключение анализа.
-            logger.exception(
-                "Failed to persist failed analysis run: run_id=%s", run_id
-            )
+            logger.exception("Failed to persist failed analysis run: run_id=%s", run_id)
 
     @staticmethod
     def _settings_snapshot(parameters: AnalyzeRequest) -> str | None:

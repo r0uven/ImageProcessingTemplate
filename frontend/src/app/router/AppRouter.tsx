@@ -11,6 +11,7 @@ import { WorkspacePage } from "@/pages/workspace";
 import { BackButton } from "@/shared/ui/back-button";
 
 export function AppRouter() {
+  // Карта маршрутов приложения: страницы лежат в src/pages.
   return (
     <BrowserRouter>
       <BackButton />

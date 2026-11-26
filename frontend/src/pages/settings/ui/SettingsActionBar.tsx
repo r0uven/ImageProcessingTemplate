@@ -10,6 +10,7 @@ type SettingsActionBarProps = {
   onSave: () => void;
 };
 
+/** Нижняя панель с состоянием сохранения и кнопками сброса/сохранения. */
 export function SettingsActionBar({
   saving,
   error,

@@ -1,3 +1,5 @@
+"""Преобразование входной схемы запроса в доменные параметры обработки."""
+
 from app.entities.processing_parameters import (
     NeuralSegmentationParameters,
     OutputMaskParameters,
@@ -14,7 +16,7 @@ from app.schemas.analyze_request import AnalyzeRequest
 def to_processing_parameters(
     request: AnalyzeRequest,
 ) -> ProcessingParameters:
-
+    """Переводит camelCase-поля ``AnalyzeRequest`` в snake_case-сущности."""
     return ProcessingParameters(
         parameters_id=request.parametersId,
         preprocessing=PreprocessingParameters(

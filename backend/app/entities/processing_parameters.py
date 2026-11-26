@@ -1,3 +1,9 @@
+"""Доменные параметры обработки изображения.
+
+Сущности повторяют структуру настроек, но не зависят от Pydantic-схем API:
+запрос маппится в эти dataclass-объекты и дальше передаётся по пайплайну.
+"""
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -6,6 +12,8 @@ from app.config.config_loader import APP_SETTINGS
 
 @dataclass
 class PreprocessingParameters:
+    """Флаги и размер фильтра для предобработки изображения."""
+
     denoise: bool
     normalize: bool
     contrast_enhancement: bool
@@ -16,6 +24,8 @@ class PreprocessingParameters:
 
 @dataclass
 class OutputMaskParameters:
+    """Значения пикселей и размер выходной маски сегментации."""
+
     foreground_value: int
     background_value: int
     preserve_size: bool
@@ -23,12 +33,16 @@ class OutputMaskParameters:
 
 @dataclass
 class ThresholdSegmentationParameters:
+    """Параметры пороговой сегментации."""
+
     threshold_value: int
     invert: bool
 
 
 @dataclass
 class NeuralSegmentationParameters:
+    """Параметры нейросетевой сегментации."""
+
     model_id: str | None
     entities: dict[str, Any]
     default_confidence_threshold: float
@@ -37,6 +51,8 @@ class NeuralSegmentationParameters:
 
 @dataclass
 class SegmentationParameters:
+    """Общие параметры сегментации: метод, маска и настройки обоих методов."""
+
     method: str
     output_mask: OutputMaskParameters
     threshold: ThresholdSegmentationParameters
@@ -45,6 +61,8 @@ class SegmentationParameters:
 
 @dataclass
 class QualityMetricsParameters:
+    """Какие метрики качества разделения пор рассчитывать."""
+
     covered_area: bool
     lost_area: bool
     extra_area: bool
@@ -54,6 +72,8 @@ class QualityMetricsParameters:
 
 @dataclass
 class SeparationParameters:
+    """Параметры разделения слипшихся пор."""
+
     enabled: bool
     apply_only_to_candidates: bool
     preserve_autonomous_pores: bool
@@ -66,6 +86,7 @@ class SeparationParameters:
 
 
 def default_preprocessing_parameters() -> PreprocessingParameters:
+    """Собирает параметры предобработки из глобальных настроек приложения."""
     settings = APP_SETTINGS["preprocessing"]
 
     return PreprocessingParameters(
@@ -79,6 +100,7 @@ def default_preprocessing_parameters() -> PreprocessingParameters:
 
 
 def default_segmentation_parameters() -> SegmentationParameters:
+    """Собирает параметры сегментации из глобальных настроек приложения."""
     settings = APP_SETTINGS["segmentation"]
 
     return SegmentationParameters(
@@ -104,6 +126,7 @@ def default_segmentation_parameters() -> SegmentationParameters:
 
 
 def default_separation_parameters() -> SeparationParameters:
+    """Собирает параметры разделения пор из глобальных настроек приложения."""
     settings = APP_SETTINGS["pore_separation"]
 
     return SeparationParameters(
@@ -127,6 +150,8 @@ def default_separation_parameters() -> SeparationParameters:
 
 @dataclass
 class ProcessingParameters:
+    """Полный набор параметров одного запуска анализа."""
+
     parameters_id: str = ""
 
     preprocessing: PreprocessingParameters = field(

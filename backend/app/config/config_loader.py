@@ -1,3 +1,5 @@
+"""Загрузка, нормализация и сохранение ``settings.json``."""
+
 import copy
 import json
 import logging
